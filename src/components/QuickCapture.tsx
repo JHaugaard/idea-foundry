@@ -26,9 +26,9 @@ const QuickCapture = () => {
         .from('profiles')
         .select('google_drive_access_token')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
-      setIsGoogleDriveConnected(!!data?.google_drive_access_token);
+      setIsGoogleDriveConnected(!!(data as any)?.google_drive_access_token);
     };
 
     checkGoogleDriveConnection();
