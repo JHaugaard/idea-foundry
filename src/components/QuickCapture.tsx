@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,14 +6,33 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Lightbulb } from 'lucide-react';
+import { useGoogleDrive } from '@/hooks/useGoogleDrive';
+import { Plus, Lightbulb, Cloud, CloudOff } from 'lucide-react';
 
 const QuickCapture = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { connectGoogleDrive, uploadToGoogleDrive, isConnecting, isUploading } = useGoogleDrive();
+
+  useEffect(() => {
+    const checkGoogleDriveConnection = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('google_drive_access_token')
+        .eq('user_id', user.id)
+        .single();
+      
+      setIsGoogleDriveConnected(!!data?.google_drive_access_token);
+    };
+
+    checkGoogleDriveConnection();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
