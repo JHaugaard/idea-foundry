@@ -47,6 +47,45 @@ export type Database = {
         }
         Relationships: []
       }
+      files: {
+        Row: {
+          created_at: string
+          file_size: number
+          file_type: string
+          id: string
+          metadata: Json | null
+          original_name: string
+          storage_path: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size: number
+          file_type: string
+          id?: string
+          metadata?: Json | null
+          original_name: string
+          storage_path: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          metadata?: Json | null
+          original_name?: string
+          storage_path?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string | null

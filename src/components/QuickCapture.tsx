@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,39 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useGoogleDrive } from '@/hooks/useGoogleDrive';
-import { GoogleDriveSetup } from '@/components/GoogleDriveSetup';
-import { Plus, Lightbulb, Cloud, CloudOff, Upload, X, FileText } from 'lucide-react';
+import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
+import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 
 const QuickCapture = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{name: string, id: string}>>([]);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { uploadToGoogleDrive, hasStoredCredentials, isUploading } = useGoogleDrive();
-
-  useEffect(() => {
-    const checkGoogleDriveConnection = async () => {
-      if (!user) return;
-      
-      // Check both stored credentials and server-side tokens
-      const hasCredentials = hasStoredCredentials();
-      
-      const { data } = await supabase
-        .from('profiles')
-        .select('google_drive_access_token')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      setIsGoogleDriveConnected(hasCredentials || !!(data as any)?.google_drive_access_token);
-    };
-
-    checkGoogleDriveConnection();
-  }, [user, hasStoredCredentials]);
+  const { uploadFile, isUploading } = useSupabaseStorage();
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -54,10 +33,10 @@ const QuickCapture = () => {
     e.preventDefault();
     setIsDragOver(false);
 
-    if (!isGoogleDriveConnected) {
+    if (!user) {
       toast({
-        title: "Google Drive not connected",
-        description: "Please connect to Google Drive to upload files.",
+        title: "Authentication required",
+        description: "Please sign in to upload files.",
         variant: "destructive",
       });
       return;
@@ -73,7 +52,8 @@ const QuickCapture = () => {
       'image/png',
       'image/jpeg',
       'image/gif',
-      'image/webp'
+      'image/webp',
+      'text/plain'
     ];
 
     for (const file of files) {
@@ -87,23 +67,13 @@ const QuickCapture = () => {
       }
 
       try {
-        const fileContent = await file.text();
-        await uploadToGoogleDrive(file.name, fileContent);
+        await uploadFile(file);
         setUploadedFiles(prev => [...prev, { name: file.name, id: Date.now().toString() }]);
-        
-        toast({
-          title: "File uploaded",
-          description: `${file.name} has been uploaded to Google Drive.`,
-        });
       } catch (error: any) {
-        toast({
-          title: "Upload failed",
-          description: `Failed to upload ${file.name}: ${error.message}`,
-          variant: "destructive",
-        });
+        // Error is already handled in the hook
       }
     }
-  }, [isGoogleDriveConnected, uploadToGoogleDrive, toast]);
+  }, [user, uploadFile, toast]);
 
   const removeUploadedFile = useCallback((id: string) => {
     setUploadedFiles(prev => prev.filter(file => file.id !== id));
@@ -137,6 +107,7 @@ const QuickCapture = () => {
       // Clear form
       setTitle('');
       setContent('');
+      setUploadedFiles([]);
 
       toast({
         title: "Idea captured!",
@@ -189,9 +160,9 @@ const QuickCapture = () => {
           {/* Drag and Drop Zone */}
           <div
             className={`
-              border-2 border-dashed rounded-lg p-6 text-center transition-colors
+              border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer
               ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
-              ${!isGoogleDriveConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+              ${!user ? 'opacity-50 cursor-not-allowed' : ''}
             `}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -200,15 +171,13 @@ const QuickCapture = () => {
             <div className="flex flex-col items-center gap-2">
               <Upload className={`h-8 w-8 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
               <div className="text-sm text-muted-foreground">
-                {isGoogleDriveConnected ? (
+                {user ? (
                   <>
-                    <p className="font-medium">Drop files here to upload to Google Drive</p>
-                    <p className="text-xs">Supports PDF, Word, Excel, and images</p>
+                    <p className="font-medium">Drop files here to upload</p>
+                    <p className="text-xs">Supports PDF, Word, Excel, images, and text files</p>
                   </>
                 ) : (
-                  <div className="mt-4">
-                    <GoogleDriveSetup onComplete={() => setIsGoogleDriveConnected(true)} />
-                  </div>
+                  <p className="font-medium">Sign in to upload files</p>
                 )}
               </div>
               {isUploading && (

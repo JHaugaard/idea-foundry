@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QuickCapture from '@/components/QuickCapture';
 import RecentNotes from '@/components/RecentNotes';
+import FileManager from '@/components/FileManager';
 
 const Index = () => {
   const { user, signOut, loading } = useAuth();
@@ -48,42 +49,27 @@ const Index = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <QuickCapture />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Welcome Back!</CardTitle>
-                <CardDescription>
-                  You're signed in as {user.email}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Your Idea Foundry is ready to capture and organize your thoughts. 
-                  Start by creating your first note or importing resources.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+        <div className="space-y-6">
+          <QuickCapture />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>Welcome Back!</CardTitle>
+              <CardDescription>
+                You're signed in as {user.email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Your Idea Foundry is ready to capture and organize your thoughts. 
+                Start by creating your first note or uploading files.
+              </p>
+            </CardContent>
+          </Card>
 
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RecentNotes />
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Smart Search</CardTitle>
-                <CardDescription>
-                  Find anything in your collection
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Coming soon: AI-powered semantic search across all your content
-                </p>
-              </CardContent>
-            </Card>
+            <FileManager />
           </div>
         </div>
       </div>
