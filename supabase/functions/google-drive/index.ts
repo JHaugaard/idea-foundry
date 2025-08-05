@@ -36,10 +36,10 @@ serve(async (req) => {
 
     switch (action) {
       case 'get_auth_url':
-        return await getAuthUrl()
+        return await getAuthUrl(payload)
       
       case 'exchange_code':
-        return await exchangeCode(payload.code, supabaseClient, user.id)
+        return await exchangeCode(payload.code, supabaseClient, user.id, payload)
       
       case 'upload_file':
         return await uploadFile(payload, supabaseClient, user.id)
@@ -62,9 +62,13 @@ serve(async (req) => {
   }
 })
 
-async function getAuthUrl() {
-  const clientId = Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')
+async function getAuthUrl(payload: any) {
+  const clientId = payload.clientId || Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')
   const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-drive`
+  
+  if (!clientId) {
+    throw new Error('Google Drive Client ID not provided')
+  }
   
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
     `client_id=${clientId}&` +
@@ -80,10 +84,14 @@ async function getAuthUrl() {
   )
 }
 
-async function exchangeCode(code: string, supabaseClient: any, userId: string) {
-  const clientId = Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')
-  const clientSecret = Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET')
+async function exchangeCode(code: string, supabaseClient: any, userId: string, payload: any) {
+  const clientId = payload.clientId || Deno.env.get('GOOGLE_DRIVE_CLIENT_ID')
+  const clientSecret = payload.clientSecret || Deno.env.get('GOOGLE_DRIVE_CLIENT_SECRET')
   const redirectUri = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-drive`
+  
+  if (!clientId || !clientSecret) {
+    throw new Error('Google Drive credentials not provided')
+  }
 
   const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',

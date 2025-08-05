@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useGoogleDrive } from '@/hooks/useGoogleDrive';
+import { GoogleDriveSetup } from '@/components/GoogleDriveSetup';
 import { Plus, Lightbulb, Cloud, CloudOff, Upload, X, FileText } from 'lucide-react';
 
 const QuickCapture = () => {
@@ -18,11 +19,14 @@ const QuickCapture = () => {
   const [uploadedFiles, setUploadedFiles] = useState<Array<{name: string, id: string}>>([]);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { connectGoogleDrive, uploadToGoogleDrive, isConnecting, isUploading } = useGoogleDrive();
+  const { uploadToGoogleDrive, hasStoredCredentials, isUploading } = useGoogleDrive();
 
   useEffect(() => {
     const checkGoogleDriveConnection = async () => {
       if (!user) return;
+      
+      // Check both stored credentials and server-side tokens
+      const hasCredentials = hasStoredCredentials();
       
       const { data } = await supabase
         .from('profiles')
@@ -30,11 +34,11 @@ const QuickCapture = () => {
         .eq('user_id', user.id)
         .maybeSingle();
       
-      setIsGoogleDriveConnected(!!(data as any)?.google_drive_access_token);
+      setIsGoogleDriveConnected(hasCredentials || !!(data as any)?.google_drive_access_token);
     };
 
     checkGoogleDriveConnection();
-  }, [user]);
+  }, [user, hasStoredCredentials]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -202,20 +206,9 @@ const QuickCapture = () => {
                     <p className="text-xs">Supports PDF, Word, Excel, and images</p>
                   </>
                 ) : (
-                  <>
-                    <p className="font-medium">Connect Google Drive to upload files</p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={connectGoogleDrive}
-                      disabled={isConnecting}
-                      className="mt-2"
-                    >
-                      <Cloud className="h-4 w-4 mr-2" />
-                      {isConnecting ? "Connecting..." : "Connect Google Drive"}
-                    </Button>
-                  </>
+                  <div className="mt-4">
+                    <GoogleDriveSetup onComplete={() => setIsGoogleDriveConnected(true)} />
+                  </div>
                 )}
               </div>
               {isUploading && (

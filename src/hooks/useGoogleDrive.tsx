@@ -7,11 +7,39 @@ export const useGoogleDrive = () => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  const connectGoogleDrive = async () => {
+  const getStoredCredentials = () => {
+    const clientId = localStorage.getItem('google_drive_client_id');
+    const clientSecret = localStorage.getItem('google_drive_client_secret');
+    return { clientId, clientSecret };
+  };
+
+  const setStoredCredentials = (clientId: string, clientSecret: string) => {
+    localStorage.setItem('google_drive_client_id', clientId);
+    localStorage.setItem('google_drive_client_secret', clientSecret);
+  };
+
+  const connectGoogleDrive = async (clientId?: string, clientSecret?: string) => {
     setIsConnecting(true);
     try {
+      const credentials = getStoredCredentials();
+      const finalClientId = clientId || credentials.clientId;
+      const finalClientSecret = clientSecret || credentials.clientSecret;
+
+      if (!finalClientId || !finalClientSecret) {
+        throw new Error('Google Drive credentials are required');
+      }
+
+      // Store credentials if provided
+      if (clientId && clientSecret) {
+        setStoredCredentials(clientId, clientSecret);
+      }
+
       const { data, error } = await supabase.functions.invoke('google-drive', {
-        body: { action: 'get_auth_url' }
+        body: { 
+          action: 'get_auth_url',
+          clientId: finalClientId,
+          clientSecret: finalClientSecret
+        }
       });
 
       if (error) throw error;
@@ -94,10 +122,22 @@ export const useGoogleDrive = () => {
     }
   };
 
+  const hasStoredCredentials = () => {
+    const { clientId, clientSecret } = getStoredCredentials();
+    return !!(clientId && clientSecret);
+  };
+
+  const clearStoredCredentials = () => {
+    localStorage.removeItem('google_drive_client_id');
+    localStorage.removeItem('google_drive_client_secret');
+  };
+
   return {
     connectGoogleDrive,
     uploadToGoogleDrive,
     listGoogleDriveFiles,
+    hasStoredCredentials,
+    clearStoredCredentials,
     isConnecting,
     isUploading,
   };
