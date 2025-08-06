@@ -61,7 +61,7 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Your Idea Foundry is ready to capture and organize your thoughts. 
+                Your Idea Foundry is ready to capture and organize your notes. 
                 Start by creating your first note or uploading files.
               </p>
             </CardContent>
