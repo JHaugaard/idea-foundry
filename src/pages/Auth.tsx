@@ -73,7 +73,7 @@ const Auth = () => {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Idea Foundry</CardTitle>
           <CardDescription>
-            Capture, organize, and discover your ideas
+            Capture, organize, and discover your notes
           </CardDescription>
         </CardHeader>
         <CardContent>
