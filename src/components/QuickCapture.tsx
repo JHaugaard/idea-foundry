@@ -85,7 +85,7 @@ const QuickCapture = () => {
     if (!user || !title.trim()) {
       toast({
         title: "Missing information",
-        description: "Please enter a title for your idea.",
+        description: "Please enter a title for your note.",
         variant: "destructive",
       });
       return;
@@ -110,12 +110,12 @@ const QuickCapture = () => {
       setUploadedFiles([]);
 
       toast({
-        title: "Idea captured!",
-        description: "Your idea has been saved to your collection.",
+        title: "Note captured!",
+        description: "Your note has been saved as Not Reviewed.",
       });
     } catch (error: any) {
       toast({
-        title: "Failed to save idea",
+        title: "Failed to save note",
         description: error.message,
         variant: "destructive",
       });
@@ -132,7 +132,7 @@ const QuickCapture = () => {
           Quick Capture
         </CardTitle>
         <CardDescription>
-          Instantly capture your ideas and thoughts
+          Capture your notes
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -140,7 +140,7 @@ const QuickCapture = () => {
           <div className="space-y-2">
             <Input
               type="text"
-              placeholder="What's your idea?"
+              placeholder="Add a note"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="text-base"
