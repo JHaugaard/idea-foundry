@@ -44,28 +44,18 @@ const Index = () => {
             <h1 className="text-4xl font-bold mb-2">Idea Foundry</h1>
             <p className="text-xl text-muted-foreground">Capture, organize, and discover your ideas</p>
           </div>
-          <Button onClick={handleSignOut} variant="outline">
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              You're signed in as {user.email}
+            </span>
+            <Button onClick={handleSignOut} variant="outline">
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-6">
           <QuickCapture />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Welcome Back!</CardTitle>
-              <CardDescription>
-                You're signed in as {user.email}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Your Idea Foundry is ready to capture and organize your notes. 
-                Start by creating your first note or uploading files.
-              </p>
-            </CardContent>
-          </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RecentNotes />
