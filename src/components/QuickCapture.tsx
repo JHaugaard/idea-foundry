@@ -142,7 +142,7 @@ const QuickCapture = () => {
             <div>
               <Input
                 type="text"
-                placeholder="What's your idea?"
+                placeholder="The note ..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="text-base"
