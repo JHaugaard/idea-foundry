@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
 import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
@@ -13,8 +12,6 @@ import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 const QuickCapture = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [reviewStatus, setReviewStatus] = useState<'not_reviewed' | 'reviewed'>('not_reviewed');
-  const [categoryType, setCategoryType] = useState<'personal' | 'work'>('personal');
   const [isLoading, setIsLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{name: string, id: string}>>([]);
@@ -103,8 +100,6 @@ const QuickCapture = () => {
           user_id: user.id,
           title: title.trim(),
           content: content.trim() || null,
-          review_status: reviewStatus,
-          category_type: categoryType,
         });
 
       if (error) throw error;
@@ -112,8 +107,6 @@ const QuickCapture = () => {
       // Clear form
       setTitle('');
       setContent('');
-      setReviewStatus('not_reviewed');
-      setCategoryType('personal');
       setUploadedFiles([]);
 
       toast({
@@ -146,38 +139,15 @@ const QuickCapture = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {/* Left side - Note input */}
-            <div className="space-y-3">
+            <div>
               <Input
                 type="text"
-                placeholder="The note ..."
+                placeholder="What's your idea?"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="text-base"
                 disabled={isLoading}
               />
-              
-              {/* Category selectors */}
-              <div className="grid grid-cols-2 gap-2">
-                <Select value={reviewStatus} onValueChange={(value: 'not_reviewed' | 'reviewed') => setReviewStatus(value)}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="not_reviewed">Not Reviewed</SelectItem>
-                    <SelectItem value="reviewed">Reviewed</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Select value={categoryType} onValueChange={(value: 'personal' | 'work') => setCategoryType(value)}>
-                  <SelectTrigger className="text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="personal">Personal</SelectItem>
-                    <SelectItem value="work">Work</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             
             {/* Right side - Drag and Drop Zone */}

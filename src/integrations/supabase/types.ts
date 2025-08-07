@@ -88,33 +88,27 @@ export type Database = {
       }
       notes: {
         Row: {
-          category_type: Database["public"]["Enums"]["category_type"]
           content: string | null
           created_at: string
           id: string
-          review_status: Database["public"]["Enums"]["review_status"]
           tags: string[] | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
-          category_type?: Database["public"]["Enums"]["category_type"]
           content?: string | null
           created_at?: string
           id?: string
-          review_status?: Database["public"]["Enums"]["review_status"]
           tags?: string[] | null
           title: string
           updated_at?: string
           user_id: string
         }
         Update: {
-          category_type?: Database["public"]["Enums"]["category_type"]
           content?: string | null
           created_at?: string
           id?: string
-          review_status?: Database["public"]["Enums"]["review_status"]
           tags?: string[] | null
           title?: string
           updated_at?: string
@@ -163,8 +157,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      category_type: "personal" | "work"
-      review_status: "not_reviewed" | "reviewed"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -291,9 +284,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      category_type: ["personal", "work"],
-      review_status: ["not_reviewed", "reviewed"],
-    },
+    Enums: {},
   },
 } as const
