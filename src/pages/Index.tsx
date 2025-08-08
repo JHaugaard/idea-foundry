@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
+import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import QuickCapture from '@/components/QuickCapture';
 import RecentNotes from '@/components/RecentNotes';
@@ -17,10 +17,6 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
-  };
 
   if (loading) {
     return (
@@ -45,12 +41,7 @@ const Index = () => {
             <p className="text-xl text-muted-foreground">Capture, organize, and discover your ideas</p>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              You're signed in as {user.email}
-            </span>
-            <Button onClick={handleSignOut} variant="outline">
-              Sign Out
-            </Button>
+            <UserMenu />
           </div>
         </div>
 
