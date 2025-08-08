@@ -110,12 +110,9 @@ const FileManager = () => {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <File className="h-5 w-5" />
-          File Manager
+          <Search className="h-5 w-5" />
+          Search
         </CardTitle>
-        <CardDescription>
-          Manage and search through your uploaded files
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search */}

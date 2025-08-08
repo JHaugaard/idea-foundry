@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
 import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
@@ -13,7 +13,7 @@ import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 const QuickCapture = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [reviewStatus, setReviewStatus] = useState('not_reviewed');
+  
   const [isLoading, setIsLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{name: string, id: string}>>([]);
@@ -102,7 +102,7 @@ const QuickCapture = () => {
           user_id: user.id,
           title: title.trim(),
           content: content.trim() || null,
-          review_status: reviewStatus,
+          
         });
 
       if (error) throw error;
@@ -110,7 +110,7 @@ const QuickCapture = () => {
       // Clear form
       setTitle('');
       setContent('');
-      setReviewStatus('not_reviewed');
+      
       setUploadedFiles([]);
 
       toast({
@@ -152,15 +152,6 @@ const QuickCapture = () => {
                 className="text-base"
                 disabled={isLoading}
               />
-              <Select value={reviewStatus} onValueChange={setReviewStatus} disabled={isLoading}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="not_reviewed">Not Reviewed</SelectItem>
-                  <SelectItem value="reviewed">Reviewed</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             
             {/* Right side - Drag and Drop Zone */}

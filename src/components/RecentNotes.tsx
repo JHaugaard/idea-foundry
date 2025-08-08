@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface Note {
   id: string;
@@ -20,6 +21,7 @@ const RecentNotes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
@@ -29,12 +31,11 @@ const RecentNotes = () => {
 
   const fetchNotes = async () => {
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        const query = supabase.from('notes').select('*') as any;
+        const { data, error } = await query
+          .eq('user_id', user?.id as string)
+          .eq('review_status', 'not_reviewed')
+          .order('created_at', { ascending: false });
 
       if (error) throw error;
       setNotes(data || []);
@@ -45,13 +46,17 @@ const RecentNotes = () => {
     }
   };
 
+  const handleNoteClick = (note: Note) => {
+    toast({ title: 'Open for review', description: note.title });
+  };
+
   if (isLoading) {
     return (
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Recent Ideas
+            Review
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -66,7 +71,7 @@ const RecentNotes = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Recent Ideas
+          Review
         </CardTitle>
         <CardDescription>
           Your latest captured thoughts
@@ -83,7 +88,7 @@ const RecentNotes = () => {
           <ScrollArea className="h-[300px]">
             <div className="space-y-3">
               {notes.map((note) => (
-                <Card key={note.id} className="p-3">
+                <Card key={note.id} className="p-3 cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleNoteClick(note)}>
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <h4 className="font-medium text-sm leading-tight line-clamp-2">
