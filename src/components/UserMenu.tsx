@@ -93,7 +93,7 @@ const UserMenu: React.FC = () => {
   };
 
   if (!user) return null;
-  const displayId = user.id;
+  const displayLabel = user.email ?? user.id;
 
   return (
     <div className="flex items-center">
@@ -101,7 +101,7 @@ const UserMenu: React.FC = () => {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" aria-label="User menu">
             <UserIcon className="h-4 w-4" />
-            <span className="max-w-[200px] truncate">{displayId}</span>
+            <span className="max-w-[200px] truncate">{displayLabel}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
