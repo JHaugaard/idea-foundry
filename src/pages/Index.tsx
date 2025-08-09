@@ -6,17 +6,71 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import QuickCapture from '@/components/QuickCapture';
 import RecentNotes from '@/components/RecentNotes';
 import FileManager from '@/components/FileManager';
+import { supabase } from '@/integrations/supabase/client';
+import { slugify } from '@/lib/slug';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-
+  const { toast } = useToast();
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    const seed = async () => {
+      if (loading || !user) return;
+      const seededKey = 'dummyNotesSeeded_v1';
+      if (localStorage.getItem(seededKey) === '1') return;
+
+      const notes = [
+        {
+          title: 'Sample Note 1: Morning productivity routine',
+          content:
+            'I tried a simple morning routine to set the tone for the day: wake, stretch, hydrate, and write one page of intentions. Keeping it lightweight made it easy to repeat. The small frictionless start cascaded into better focus, fewer distractions, and a calmer pace. The best part is ending the routine by identifying one “must do” task. It clarified priorities and removed decision fatigue. I also noticed music without lyrics helps me transition into deep work faster. The routine isn’t perfect, but consistency beats intensity. Tomorrow I’ll test a five-minute meditation to see if it compounds the benefits.',
+        },
+        {
+          title: 'Sample Note 2: Learning in small loops',
+          content:
+            'Breaking learning into tiny loops works better than long sessions. The loop: learn one concept, apply it immediately, reflect briefly, and repeat. This rhythm reduces overwhelm and increases retention because the brain connects theory with action. I tried this with a new JavaScript feature: learned the syntax, wrote a tiny example, then explained it in plain English. The reflection forced me to confront gaps quickly. Short loops also reduce procrastination, since the next step is always small. A timer helps prevent perfectionism. For the next topic, I’ll try two loops per day rather than one long block.',
+        },
+        {
+          title: 'Sample Note 3: Health is a system, not a streak',
+          content:
+            'Treating health like a system instead of a streak removes the pressure of “never miss a day.” I built a simple checklist: move, nourish, sleep, and connect. Each day gets partial credit, and weekly trends matter more than perfect dailies. This mindset reduced guilt after a late night and made recovery intentional, not accidental. Small wins count: a short walk, a protein-focused snack, and a bedtime alarm. I also noticed that social connection affects sleep quality; talking with a friend eased evening rumination. I’ll track this for a week and adjust the checklist based on real patterns.',
+        },
+        {
+          title: 'Sample Note 4: Project planning by questions',
+          content:
+            'Instead of writing a long project plan, I listed five guiding questions: What outcome matters? What must be true? What can fail? What is the smallest test? What will we stop doing? This clarified scope without generating busywork. The “must be true” prompt uncovered hidden assumptions about dependencies and timing. The smallest test became a demo with fake data to validate usability before building integrations. We also cut two nice-to-haves that didn’t move the outcome. Next time, I’ll timebox this exercise to fifteen minutes and invite one skeptic to pressure‑test the answers before locking milestones.',
+        },
+        {
+          title: 'Sample Note 5: Reflection as a weekly reset',
+          content:
+            'A short weekly review helps convert activity into insight. My template: wins, misses, lessons, and adjustments. Wins remind me that progress happened even if the week felt chaotic. Misses spotlight recurring friction like unclear handoffs or vague goals. Lessons distill patterns into principles I can reuse. Adjustments turn insight into a single experiment for the next week. This loop feels sustainable because it stays under twenty minutes and pairs well with a walk. I’ll add a “stop doing” line next week to intentionally prune tasks that don’t compound. Small, honest reflections seem to be the fastest teacher.',
+        },
+      ];
+
+      const rows = notes.map((n) => ({
+        user_id: user.id,
+        title: n.title,
+        content: n.content,
+        slug: slugify(n.title),
+      }));
+
+      const { error } = await supabase.from('notes').insert(rows);
+      if (error) {
+        toast({ title: 'Seeding failed', description: error.message, variant: 'destructive' });
+      } else {
+        localStorage.setItem(seededKey, '1');
+        toast({ title: '5 sample notes added', description: 'Check Recent Notes to view them.' });
+      }
+    };
+    seed();
+  }, [user, loading, toast]);
 
   if (loading) {
     return (
