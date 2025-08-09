@@ -151,6 +151,29 @@ const QuickCapture = () => {
         }
       }
 
+      // AI summarization & tags (non-blocking)
+      try {
+        const { data: aiData, error: aiError } = await supabase.functions.invoke('note-summarize', {
+          body: {
+            note_title: title.trim(),
+            note_text: content.trim() || ''
+          }
+        });
+        if (!aiError && aiData) {
+          const parsed = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
+          const tags = Array.isArray(parsed?.tags) ? parsed.tags.slice(0, 6) : null;
+          if (tags && tags.length > 0 && inserted) {
+            await supabase
+              .from('notes')
+              .update({ tags })
+              .eq('id', inserted.id)
+              .eq('user_id', user.id);
+          }
+        }
+      } catch (e) {
+        console.warn('Summarize/tags failed (continuing):', e);
+      }
+
       // Clear form
       setTitle('');
       setContent('');
