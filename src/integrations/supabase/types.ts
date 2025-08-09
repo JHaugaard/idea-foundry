@@ -86,6 +86,57 @@ export type Database = {
         }
         Relationships: []
       }
+      note_links: {
+        Row: {
+          anchor_text: string | null
+          canonical_slug: string
+          canonical_title: string
+          created_at: string
+          id: string
+          source_note_id: string
+          target_note_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          anchor_text?: string | null
+          canonical_slug: string
+          canonical_title: string
+          created_at?: string
+          id?: string
+          source_note_id: string
+          target_note_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          anchor_text?: string | null
+          canonical_slug?: string
+          canonical_title?: string
+          created_at?: string
+          id?: string
+          source_note_id?: string
+          target_note_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_note_links_source"
+            columns: ["source_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_note_links_target"
+            columns: ["target_note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           captured_on: string
@@ -95,6 +146,7 @@ export type Database = {
           id: string
           pinned: boolean
           review_status: Database["public"]["Enums"]["review_status"]
+          slug: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -108,6 +160,7 @@ export type Database = {
           id?: string
           pinned?: boolean
           review_status?: Database["public"]["Enums"]["review_status"]
+          slug?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -121,6 +174,7 @@ export type Database = {
           id?: string
           pinned?: boolean
           review_status?: Database["public"]["Enums"]["review_status"]
+          slug?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string

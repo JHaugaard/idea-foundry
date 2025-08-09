@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { slugify, extractBracketLinks } from '@/lib/slug';
 
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
@@ -96,21 +97,63 @@ const QuickCapture = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase
+      const noteSlug = slugify(title.trim());
+      const bracketLinks = extractBracketLinks(title);
+
+      const { data: inserted, error: insertError } = await supabase
         .from('notes')
         .insert({
           user_id: user.id,
           title: title.trim(),
           content: content.trim() || null,
-          
-        });
+          slug: noteSlug,
+        })
+        .select('id, slug')
+        .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Attempt auto-linking for [[...]] to existing notes by slug (excluding self)
+      if (inserted && bracketLinks.length > 0) {
+        const uniqueSlugs = Array.from(new Set(
+          bracketLinks.map(b => b.slug).filter(s => s && s !== inserted.slug)
+        ));
+
+        if (uniqueSlugs.length > 0) {
+          const { data: targets, error: findError } = await supabase
+            .from('notes')
+            .select('id, slug, title')
+            .eq('user_id', user.id)
+            .in('slug', uniqueSlugs);
+
+          if (findError) throw findError;
+
+          const slugToId = new Map<string, string>();
+          (targets || []).forEach(t => slugToId.set(t.slug, t.id));
+
+          const linkRows = bracketLinks
+            .filter(b => slugToId.has(b.slug))
+            .map(b => ({
+              user_id: user.id,
+              source_note_id: inserted.id,
+              target_note_id: slugToId.get(b.slug)!,
+              anchor_text: b.text,
+              canonical_title: b.text,
+              canonical_slug: b.slug,
+            }));
+
+          if (linkRows.length > 0) {
+            const { error: linkError } = await supabase.from('note_links').insert(linkRows);
+            if (linkError) {
+              console.error('Auto-linking error:', linkError);
+            }
+          }
+        }
+      }
 
       // Clear form
       setTitle('');
       setContent('');
-      
       setUploadedFiles([]);
 
       toast({
