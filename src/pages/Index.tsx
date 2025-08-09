@@ -54,19 +54,44 @@ const Index = () => {
         },
       ];
 
-      const rows = notes.map((n) => ({
-        user_id: user.id,
-        title: n.title,
-        content: n.content,
-        slug: slugify(n.title),
-      }));
+      try {
+        const slugs = notes.map((n) => slugify(n.title));
+        const { data: existing } = await supabase
+          .from('notes')
+          .select('slug')
+          .in('slug', slugs)
+          .eq('user_id', user.id);
 
-      const { error } = await supabase.from('notes').insert(rows);
-      if (error) {
-        toast({ title: 'Seeding failed', description: error.message, variant: 'destructive' });
-      } else {
+        const existingSlugs = new Set((existing ?? []).map((e: { slug: string }) => e.slug));
+        const missing = notes.filter((n) => !existingSlugs.has(slugify(n.title)));
+
+        if (missing.length === 0) {
+          localStorage.setItem(seededKey, '1');
+          return;
+        }
+
+        const rows = missing.map((n) => ({
+          user_id: user.id,
+          title: n.title,
+          content: n.content,
+          slug: slugify(n.title),
+        }));
+
+        const { error } = await supabase.from('notes').insert(rows);
+        if (error) {
+          // Treat unique violations as already seeded
+          if ((error as any)?.code === '23505') {
+            localStorage.setItem(seededKey, '1');
+            return;
+          }
+          toast({ title: 'Seeding failed', description: error.message, variant: 'destructive' });
+          return;
+        }
+
         localStorage.setItem(seededKey, '1');
-        toast({ title: '5 sample notes added', description: 'Check Recent Notes to view them.' });
+        toast({ title: `${rows.length} sample ${rows.length === 1 ? 'note' : 'notes'} added`, description: 'Check Recent Notes to view them.' });
+      } catch (err: any) {
+        toast({ title: 'Seeding failed', description: err?.message ?? 'Unknown error', variant: 'destructive' });
       }
     };
     seed();
