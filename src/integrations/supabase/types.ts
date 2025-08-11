@@ -14,39 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      drive_files: {
-        Row: {
-          content: string | null
-          created_at: string
-          file_name: string
-          google_drive_file_id: string
-          id: string
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string
-          file_name: string
-          google_drive_file_id: string
-          id?: string
-          title: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          content?: string | null
-          created_at?: string
-          file_name?: string
-          google_drive_file_id?: string
-          id?: string
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       files: {
         Row: {
           created_at: string
@@ -225,8 +192,6 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
-          google_drive_access_token: string | null
-          google_drive_refresh_token: string | null
           id: string
           updated_at: string
           user_id: string
@@ -235,8 +200,6 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
-          google_drive_access_token?: string | null
-          google_drive_refresh_token?: string | null
           id?: string
           updated_at?: string
           user_id: string
@@ -245,8 +208,6 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
-          google_drive_access_token?: string | null
-          google_drive_refresh_token?: string | null
           id?: string
           updated_at?: string
           user_id?: string
