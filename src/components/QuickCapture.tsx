@@ -11,7 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
 import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 
-const QuickCapture = () => {
+interface QuickCaptureProps { trigger?: React.ReactNode }
+const QuickCapture: React.FC<QuickCaptureProps> = ({ trigger }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   
@@ -199,10 +200,12 @@ const QuickCapture = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
-          <Lightbulb className="h-4 w-4 mr-2" />
-          Capture
-        </Button>
+        {trigger ?? (
+          <Button size="sm">
+            <Lightbulb className="h-4 w-4 mr-2" />
+            Capture
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

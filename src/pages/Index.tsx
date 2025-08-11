@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import QuickCapture from '@/components/QuickCapture';
+import CaptureBanner from '@/components/CaptureBanner';
 import RecentNotes from '@/components/RecentNotes';
 import FileManager from '@/components/FileManager';
 import { supabase } from '@/integrations/supabase/client';
@@ -125,7 +125,7 @@ const Index = () => {
         </div>
 
         <div className="space-y-6">
-          <QuickCapture />
+          <CaptureBanner />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RecentNotes />
