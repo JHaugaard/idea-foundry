@@ -202,7 +202,7 @@ const QuickCapture = () => {
           Quick Capture
         </CardTitle>
         <CardDescription>
-          Capture your notes
+          Capture notes
         </CardDescription>
       </CardHeader>
       <CardContent>
