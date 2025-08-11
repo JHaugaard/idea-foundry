@@ -2,9 +2,9 @@ import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// Removed unused Input import
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { slugify, extractBracketLinks } from '@/lib/slug';
 
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +21,7 @@ const QuickCapture = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useSupabaseStorage();
-
+  const [open, setOpen] = useState(false);
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -183,6 +183,8 @@ const QuickCapture = () => {
         title: "Note captured!",
         description: "Your note has been saved as Not Reviewed.",
       });
+
+      setOpen(false);
     } catch (error: any) {
       toast({
         title: "Failed to save note",
@@ -195,59 +197,53 @@ const QuickCapture = () => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5" />
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">
+          <Lightbulb className="h-4 w-4 mr-2" />
           Capture
-        </CardTitle>
-    </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Left side - Note input */}
-            <div className="space-y-3">
-              <Input
-                type="text"
-                placeholder="Note"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-base"
-                disabled={isLoading}
-              />
-            </div>
-            
-            {/* Right side - Drag and Drop Zone */}
-            <div
-              className={`
-                border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5" />
+            Capture
+          </DialogTitle>
+          <DialogDescription>
+            Type or paste text and drop files below.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div
+            className={`
+                border-2 border-dashed rounded-lg p-3 transition-colors
                 ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
                 ${!user ? 'opacity-50 cursor-not-allowed' : ''}
               `}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <Upload className={`h-6 w-6 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                <div className="text-xs text-muted-foreground">
-                  {user ? (
-                    <>
-                      <p className="font-medium">Drop files</p>
-                      <p className="text-xs">PDF, Word, Excel, images</p>
-                    </>
-                  ) : (
-                    <p className="font-medium">Sign in to upload</p>
-                  )}
-                </div>
-                {isUploading && (
-                  <p className="text-xs text-primary">Uploading...</p>
-                )}
-              </div>
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <Textarea
+              placeholder="Write or paste your note here..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="min-h-40 text-base"
+              disabled={isLoading}
+              autoFocus
+            />
+
+            <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+              <Upload className={`h-4 w-4 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span>Drop files (PDF, Word, Excel, images)</span>
+              {isUploading && (
+                <span className="text-primary ml-auto">Uploading...</span>
+              )}
             </div>
           </div>
 
-          {/* Uploaded Files List */}
           {uploadedFiles.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Uploaded Files:</p>
@@ -273,19 +269,24 @@ const QuickCapture = () => {
             </div>
           )}
 
-          <div className="flex justify-center">
-            <Button 
-              type="submit" 
+          <DialogFooter className="gap-2 sm:gap-0">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                - Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="submit"
               size="sm"
               disabled={isLoading || !title.trim()}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {isLoading ? "Capturing..." : "Capture"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 
