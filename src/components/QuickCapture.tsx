@@ -199,10 +199,10 @@ const QuickCapture = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Lightbulb className="h-5 w-5" />
-          Quick Capture
+          Capture
         </CardTitle>
         <CardDescription>
-          Capture notes
+          Capture
         </CardDescription>
       </CardHeader>
       <CardContent>
