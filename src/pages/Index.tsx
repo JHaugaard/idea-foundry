@@ -117,7 +117,7 @@ const Index = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Idea Foundry</h1>
-            <p className="text-xl text-muted-foreground">Capture, organize, and discover your ideas</p>
+            <p className="text-xl text-muted-foreground">Capture, organize, and discover ideas</p>
           </div>
           <div className="flex items-center gap-4">
             <UserMenu />
