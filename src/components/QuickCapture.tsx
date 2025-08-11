@@ -201,10 +201,6 @@ const QuickCapture = () => {
           <Lightbulb className="h-5 w-5" />
           Capture
         </CardTitle>
-    /*  </CardDescription>
-          Capture
-        </CardDescription>
-    */
     </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
