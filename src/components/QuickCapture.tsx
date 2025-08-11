@@ -201,10 +201,11 @@ const QuickCapture = () => {
           <Lightbulb className="h-5 w-5" />
           Capture
         </CardTitle>
-        <CardDescription>
+    /*  </CardDescription>
           Capture
         </CardDescription>
-      </CardHeader>
+    */
+    </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
