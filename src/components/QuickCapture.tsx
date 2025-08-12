@@ -124,43 +124,7 @@ const QuickCapture = () => {
 
       if (insertError) throw insertError;
 
-      // Attempt auto-linking for [[...]] to existing notes by slug (excluding self)
-      if (inserted && bracketLinks.length > 0) {
-        const uniqueSlugs = Array.from(new Set(
-          bracketLinks.map(b => b.slug).filter(s => s && s !== inserted.slug)
-        ));
-
-        if (uniqueSlugs.length > 0) {
-          const { data: targets, error: findError } = await supabase
-            .from('notes')
-            .select('id, slug, title')
-            .eq('user_id', user.id)
-            .in('slug', uniqueSlugs);
-
-          if (findError) throw findError;
-
-          const slugToId = new Map<string, string>();
-          (targets || []).forEach(t => slugToId.set(t.slug, t.id));
-
-          const linkRows = bracketLinks
-            .filter(b => slugToId.has(b.slug))
-            .map(b => ({
-              user_id: user.id,
-              source_note_id: inserted.id,
-              target_note_id: slugToId.get(b.slug)!,
-              anchor_text: b.text,
-              canonical_title: b.text,
-              canonical_slug: b.slug,
-            }));
-
-          if (linkRows.length > 0) {
-            const { error: linkError } = await supabase.from('note_links').insert(linkRows);
-            if (linkError) {
-              console.error('Auto-linking error:', linkError);
-            }
-          }
-        }
-      }
+      // Backlink processing is paused — auto-linking disabled for now.
 
       // AI summarization & tags (non-blocking)
       try {

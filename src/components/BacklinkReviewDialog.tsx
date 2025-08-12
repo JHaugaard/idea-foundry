@@ -43,10 +43,13 @@ const BacklinkReviewDialog: React.FC<Props> = ({ open, onOpenChange, note, onCom
   const [slugMatches, setSlugMatches] = useState<Record<string, NoteLite | null>>({});
   const [createMissing, setCreateMissing] = useState(false);
 
+  // Feature flag: temporarily disable backlink processing
+  const BACKLINKS_ENABLED = false;
+
   const uniqueSlugs = useMemo(() => Array.from(new Set(entities.map(e => e.canonical.slug))), [entities]);
 
   useEffect(() => {
-    if (!open || !note || !user) return;
+    if (!open || !note || !user || !BACKLINKS_ENABLED) return;
     (async () => {
       try {
         setLoading(true);
@@ -202,7 +205,7 @@ const BacklinkReviewDialog: React.FC<Props> = ({ open, onOpenChange, note, onCom
             </div>
             <div className="flex items-center gap-2">
               <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={loading}>Cancel</Button>
-              <Button onClick={handleSave} disabled={loading || !note}>Save</Button>
+              <Button onClick={handleSave} disabled={loading || !note || !BACKLINKS_ENABLED}>Save</Button>
             </div>
           </div>
         )}
