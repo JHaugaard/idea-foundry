@@ -215,34 +215,44 @@ const QuickCapture = () => {
     </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div
-            className={`
-              border-2 border-dashed rounded-lg p-4 transition-colors
-              ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
-              ${!user ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-            `}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-4">
+            {/* Left side - Note input */}
+            <div className="space-y-3">
               <Input
                 type="text"
-                placeholder="Type a note title, or drop files (PDF, Word, Excel, images)"
+                placeholder="Note"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 className="text-base"
                 disabled={isLoading}
               />
-              <div className="text-xs text-muted-foreground flex items-center gap-2">
-                <Upload className={`h-4 w-4 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                {user ? (
-                  <span>You can type or paste text above, and also drop files here.</span>
-                ) : (
-                  <span>Sign in to upload files</span>
-                )}
+            </div>
+            
+            {/* Right side - Drag and Drop Zone */}
+            <div
+              className={`
+                border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
+                ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
+                ${!user ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <Upload className={`h-6 w-6 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div className="text-xs text-muted-foreground">
+                  {user ? (
+                    <>
+                      <p className="font-medium">Drop files</p>
+                      <p className="text-xs">PDF, Word, Excel, images</p>
+                    </>
+                  ) : (
+                    <p className="font-medium">Sign in to upload</p>
+                  )}
+                </div>
                 {isUploading && (
-                  <span className="text-primary ml-auto">Uploading...</span>
+                  <p className="text-xs text-primary">Uploading...</p>
                 )}
               </div>
             </div>
