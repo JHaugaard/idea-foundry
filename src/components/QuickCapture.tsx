@@ -2,16 +2,17 @@ import React, { useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+// Removed unused Input import
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { slugify, extractBracketLinks } from '@/lib/slug';
 
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
 import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 
-const QuickCapture = () => {
+interface QuickCaptureProps { trigger?: React.ReactNode }
+const QuickCapture: React.FC<QuickCaptureProps> = ({ trigger }) => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   
@@ -21,7 +22,7 @@ const QuickCapture = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useSupabaseStorage();
-
+  const [open, setOpen] = useState(false);
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -183,6 +184,8 @@ const QuickCapture = () => {
         title: "Note captured!",
         description: "Your note has been saved as Not Reviewed.",
       });
+
+      setOpen(false);
     } catch (error: any) {
       toast({
         title: "Failed to save note",
@@ -195,47 +198,55 @@ const QuickCapture = () => {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5" />
-          Capture
-        </CardTitle>
-    </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger ?? (
+          <Button size="sm">
+            <Lightbulb className="h-4 w-4 mr-2" />
+            Capture
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5" />
+            Capture
+          </DialogTitle>
+          <DialogDescription>
+            Type or paste text and drop files below.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div
             className={`
-              border-2 border-dashed rounded-lg p-4 transition-colors
-              ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
-              ${!user ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-            `}
+                border-2 border-dashed rounded-lg p-3 transition-colors
+                ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
+                ${!user ? 'opacity-50 cursor-not-allowed' : ''}
+              `}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div className="flex items-start gap-3">
-              <Upload className={`h-6 w-6 mt-1 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-              <div className="flex-1 space-y-2">
-                <Input
-                  type="text"
-                  placeholder={user ? 'Type or paste your note title here — you can also drop files into this box' : 'Sign in to capture notes'}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-base"
-                  disabled={isLoading}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {user ? 'Drop PDF, Word, Excel, or image files here. They will be attached to this capture.' : 'Please sign in to upload files.'}
-                </p>
-                {isUploading && (
-                  <p className="text-xs text-primary">Uploading...</p>
-                )}
-              </div>
+            <Textarea
+              placeholder="Write or paste your note here..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="min-h-40 text-base"
+              disabled={isLoading}
+              autoFocus
+            />
+
+            <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+              <Upload className={`h-4 w-4 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+              <span>Drop files (PDF, Word, Excel, images)</span>
+              {isUploading && (
+                <span className="text-primary ml-auto">Uploading...</span>
+              )}
             </div>
           </div>
 
-          {/* Uploaded Files List */}
           {uploadedFiles.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm font-medium">Uploaded Files:</p>
@@ -261,32 +272,24 @@ const QuickCapture = () => {
             </div>
           )}
 
-          <div className="flex justify-center gap-2">
-            <Button 
-              type="submit" 
+          <DialogFooter className="gap-2 sm:gap-0">
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                - Cancel
+              </Button>
+            </DialogClose>
+            <Button
+              type="submit"
               size="sm"
               disabled={isLoading || !title.trim()}
             >
               <Plus className="h-4 w-4 mr-2" />
-              {isLoading ? "Capturing..." : "Capture"}
+              {isLoading ? "Saving..." : "Save"}
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              disabled={isLoading}
-              onClick={() => {
-                setTitle('');
-                setContent('');
-                setUploadedFiles([]);
-              }}
-            >
-              - Cancel
-            </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 };
 
