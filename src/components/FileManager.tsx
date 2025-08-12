@@ -148,70 +148,10 @@ const FileManager = () => {
           </div>
         )}
 
-        {/* Files List */}
-        {isLoading ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Loading files...</p>
-          </div>
-        ) : files.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No files found.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {files.map((file) => (
-              <div key={file.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    {getFileIcon(file.file_type)}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{file.original_name}</p>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>{formatFileSize(file.file_size)}</span>
-                        <span>{new Date(file.created_at).toLocaleDateString()}</span>
-                      </div>
-                      {file.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {file.tags.map(tag => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handlePreview(file)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownload(file)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(file)}
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Files List - disabled per request */}
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Search coming soon.</p>
+        </div>
       </CardContent>
     </Card>
   );

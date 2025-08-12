@@ -258,31 +258,6 @@ const QuickCapture = () => {
             </div>
           </div>
 
-          {/* Uploaded Files List */}
-          {uploadedFiles.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Uploaded Files:</p>
-              <div className="space-y-1">
-                {uploadedFiles.map((file) => (
-                  <div key={file.id} className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{file.name}</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeUploadedFile(file.id)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="flex justify-center gap-2">
             <Button 
