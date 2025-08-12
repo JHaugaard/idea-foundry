@@ -204,42 +204,30 @@ const QuickCapture = () => {
     </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Left side - Note input */}
-            <div className="space-y-3">
-              <Input
-                type="text"
-                placeholder="Note"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-base"
-                disabled={isLoading}
-              />
-            </div>
-            
-            {/* Right side - Drag and Drop Zone */}
-            <div
-              className={`
-                border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
-                ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
-                ${!user ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <Upload className={`h-6 w-6 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                <div className="text-xs text-muted-foreground">
-                  {user ? (
-                    <>
-                      <p className="font-medium">Drop files</p>
-                      <p className="text-xs">PDF, Word, Excel, images</p>
-                    </>
-                  ) : (
-                    <p className="font-medium">Sign in to upload</p>
-                  )}
-                </div>
+          <div
+            className={`
+              border-2 border-dashed rounded-lg p-4 transition-colors
+              ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
+              ${!user ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex items-start gap-3">
+              <Upload className={`h-6 w-6 mt-1 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+              <div className="flex-1 space-y-2">
+                <Input
+                  type="text"
+                  placeholder={user ? 'Type or paste your note title here — you can also drop files into this box' : 'Sign in to capture notes'}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="text-base"
+                  disabled={isLoading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {user ? 'Drop PDF, Word, Excel, or image files here. They will be attached to this capture.' : 'Please sign in to upload files.'}
+                </p>
                 {isUploading && (
                   <p className="text-xs text-primary">Uploading...</p>
                 )}
@@ -273,7 +261,7 @@ const QuickCapture = () => {
             </div>
           )}
 
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-2">
             <Button 
               type="submit" 
               size="sm"
@@ -281,6 +269,19 @@ const QuickCapture = () => {
             >
               <Plus className="h-4 w-4 mr-2" />
               {isLoading ? "Capturing..." : "Capture"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={isLoading}
+              onClick={() => {
+                setTitle('');
+                setContent('');
+                setUploadedFiles([]);
+              }}
+            >
+              - Cancel
             </Button>
           </div>
         </form>
