@@ -124,40 +124,45 @@ const QuickCapture = () => {
 
       if (insertError) throw insertError;
 
-      // Backlink processing is paused — auto-linking disabled for now.
+  // Backlink processing is paused — auto-linking disabled for now.
 
-      // AI summarization & tags (non-blocking)
-      try {
-        const { data: aiData, error: aiError } = await supabase.functions.invoke('note-summarize', {
-          body: {
-            note_title: title.trim(),
-            note_text: content.trim() || ''
-          }
-        });
-        if (!aiError && aiData) {
-          const parsed = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
-          const tags = Array.isArray(parsed?.tags) ? parsed.tags.slice(0, 6) : null;
-          if (tags && tags.length > 0 && inserted) {
-            await supabase
-              .from('notes')
-              .update({ tags })
-              .eq('id', inserted.id)
-              .eq('user_id', user.id);
-          }
+  // Feature flag: temporarily disable AI summarization and tag generation
+  const AI_SUMMARIZATION_ENABLED = false;
+
+  // AI summarization & tags (non-blocking)
+  if (AI_SUMMARIZATION_ENABLED) {
+    try {
+      const { data: aiData, error: aiError } = await supabase.functions.invoke('note-summarize', {
+        body: {
+          note_title: title.trim(),
+          note_text: content.trim() || ''
         }
-      } catch (e) {
-        console.warn('Summarize/tags failed (continuing):', e);
-      }
-
-      // Clear form
-      setTitle('');
-      setContent('');
-      setUploadedFiles([]);
-
-      toast({
-        title: "Note captured!",
-        description: "Your note has been saved as Not Reviewed.",
       });
+      if (!aiError && aiData) {
+        const parsed = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
+        const tags = Array.isArray(parsed?.tags) ? parsed.tags.slice(0, 6) : null;
+        if (tags && tags.length > 0 && inserted) {
+          await supabase
+            .from('notes')
+            .update({ tags })
+            .eq('id', inserted.id)
+            .eq('user_id', user.id);
+        }
+      }
+    } catch (e) {
+      console.warn('Summarize/tags failed (continuing):', e);
+    }
+  }
+
+  // Clear form
+  setTitle('');
+  setContent('');
+  setUploadedFiles([]);
+
+  toast({
+    title: "Note captured!",
+    description: "Your note has been saved as Not Reviewed.",
+  });
     } catch (error: any) {
       toast({
         title: "Failed to save note",
