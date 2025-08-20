@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -214,6 +214,135 @@ export type Database = {
         }
         Relationships: []
       }
+      tag_analytics: {
+        Row: {
+          created_at: string
+          id: string
+          last_used_at: string | null
+          tag_name: string
+          total_usage_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          tag_name: string
+          total_usage_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_used_at?: string | null
+          tag_name?: string
+          total_usage_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tag_backups: {
+        Row: {
+          backup_data: Json
+          backup_name: string
+          backup_type: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          backup_data: Json
+          backup_name: string
+          backup_type?: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          backup_data?: Json
+          backup_name?: string
+          backup_type?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tag_relationships: {
+        Row: {
+          co_occurrence_count: number
+          created_at: string
+          id: string
+          relationship_strength: number
+          tag_a: string
+          tag_b: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          co_occurrence_count?: number
+          created_at?: string
+          id?: string
+          relationship_strength?: number
+          tag_a: string
+          tag_b: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          co_occurrence_count?: number
+          created_at?: string
+          id?: string
+          relationship_strength?: number
+          tag_a?: string
+          tag_b?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_tag_preferences: {
+        Row: {
+          auto_format_tags: boolean
+          created_at: string
+          enforce_naming_conventions: boolean
+          id: string
+          max_tags_per_note: number
+          max_total_tags: number
+          reserved_words: string[] | null
+          suggest_similar_tags: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_format_tags?: boolean
+          created_at?: string
+          enforce_naming_conventions?: boolean
+          id?: string
+          max_tags_per_note?: number
+          max_total_tags?: number
+          reserved_words?: string[] | null
+          suggest_similar_tags?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_format_tags?: boolean
+          created_at?: string
+          enforce_naming_conventions?: boolean
+          id?: string
+          max_tags_per_note?: number
+          max_total_tags?: number
+          reserved_words?: string[] | null
+          suggest_similar_tags?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -222,6 +351,10 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      format_tag_name: {
+        Args: { tag_name: string }
+        Returns: string
       }
       halfvec_avg: {
         Args: { "": number[] }
@@ -277,15 +410,15 @@ export type Database = {
       }
       match_notes: {
         Args: {
-          query_embedding: string
-          match_threshold?: number
           match_count?: number
+          match_threshold?: number
+          query_embedding: string
         }
         Returns: {
           note_id: string
-          title: string
-          slug: string
           similarity: number
+          slug: string
+          title: string
         }[]
       }
       sparsevec_out: {
@@ -299,6 +432,10 @@ export type Database = {
       sparsevec_typmod_in: {
         Args: { "": unknown[] }
         Returns: number
+      }
+      validate_tag_name: {
+        Args: { tag_name: string }
+        Returns: boolean
       }
       vector_avg: {
         Args: { "": number[] }
