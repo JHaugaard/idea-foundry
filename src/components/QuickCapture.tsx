@@ -1,26 +1,77 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { slugify, extractBracketLinks } from '@/lib/slug';
-
+import TagInput from '@/components/TagInput';
+import { useTags } from '@/hooks/useTags';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
 import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 
+// Form validation schema
+const formSchema = z.object({
+  title: z
+    .string()
+    .min(1, 'Title is required')
+    .max(200, 'Title must be less than 200 characters'),
+  content: z
+    .string()
+    .max(10000, 'Content must be less than 10,000 characters')
+    .optional()
+    .or(z.literal('')),
+  tags: z
+    .array(z.string())
+    .max(10, 'Maximum 10 tags allowed')
+});
+
+type FormData = z.infer<typeof formSchema>;
+
 const QuickCapture = () => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  
-  const [isLoading, setIsLoading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Array<{name: string, id: string}>>([]);
+  const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useSupabaseStorage();
+  const { tags: existingTags, invalidateTags, getTagSuggestions } = useTags();
+
+  // Initialize form with validation
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: '',
+      content: '',
+      tags: []
+    }
+  });
+
+  const { watch, reset } = form;
+  const watchedTitle = watch('title');
+  const watchedContent = watch('content');
+
+  // Generate tag suggestions when title/content changes
+  useEffect(() => {
+    const generateSuggestions = async () => {
+      if (watchedTitle?.trim()) {
+        const suggestions = await getTagSuggestions(watchedTitle, watchedContent);
+        setTagSuggestions(suggestions);
+      } else {
+        setTagSuggestions([]);
+      }
+    };
+
+    const timer = setTimeout(generateSuggestions, 500);
+    return () => clearTimeout(timer);
+  }, [watchedTitle, watchedContent, getTagSuggestions]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -93,31 +144,28 @@ const QuickCapture = () => {
     setUploadedFiles(prev => prev.filter(file => file.id !== id));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!user || !title.trim()) {
+  const handleSubmit = async (values: FormData) => {
+    if (!user) {
       toast({
-        title: "Missing information",
-        description: "Please enter a title for your note.",
+        title: "Authentication required",
+        description: "Please sign in to save notes.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const noteSlug = slugify(title.trim());
-      const bracketLinks = extractBracketLinks(title);
+      const noteSlug = slugify(values.title.trim());
+      const bracketLinks = extractBracketLinks(values.title);
 
       const { data: inserted, error: insertError } = await supabase
         .from('notes')
         .insert({
           user_id: user.id,
-          title: title.trim(),
-          content: content.trim() || null,
+          title: values.title.trim(),
+          content: values.content?.trim() || null,
           slug: noteSlug,
+          tags: values.tags.length > 0 ? values.tags : null,
         })
         .select('id, slug')
         .single();
@@ -134,8 +182,8 @@ const QuickCapture = () => {
     try {
       const { data: aiData, error: aiError } = await supabase.functions.invoke('note-summarize', {
         body: {
-          note_title: title.trim(),
-          note_text: content.trim() || ''
+          note_title: values.title.trim(),
+          note_text: values.content?.trim() || ''
         }
       });
       if (!aiError && aiData) {
@@ -154,23 +202,22 @@ const QuickCapture = () => {
     }
   }
 
-  // Clear form
-  setTitle('');
-  setContent('');
-  setUploadedFiles([]);
+      // Clear form and refresh tag cache
+      reset();
+      setUploadedFiles([]);
+      setTagSuggestions([]);
+      invalidateTags(); // Refresh tag suggestions for future use
 
-  toast({
-    title: "Note captured!",
-    description: "Your note has been saved as Not Reviewed.",
-  });
+      toast({
+        title: "Note captured!",
+        description: "Your note has been saved as Not Reviewed.",
+      });
     } catch (error: any) {
       toast({
         title: "Failed to save note",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -183,75 +230,126 @@ const QuickCapture = () => {
         </CardTitle>
     </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            {/* Left side - Note input */}
-            <div className="space-y-3">
-              <Input
-                type="text"
-                placeholder="Note"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="text-base"
-                disabled={isLoading}
-              />
-            </div>
-            
-            {/* Right side - Drag and Drop Zone */}
-            <div
-              className={`
-                border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
-                ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
-                ${!user ? 'opacity-50 cursor-not-allowed' : ''}
-              `}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <Upload className={`h-6 w-6 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                <div className="text-xs text-muted-foreground">
-                  {user ? (
-                    <>
-                      <p className="font-medium">Drop files</p>
-                      <p className="text-xs">PDF, Word, Excel, images</p>
-                    </>
-                  ) : (
-                    <p className="font-medium">Sign in to upload</p>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Title Input */}
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Note Title</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter note title..."
+                      {...field}
+                      className="text-base"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Content Input */}
+            <FormField
+              control={form.control}
+              name="content"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Content (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Add additional notes..."
+                      className="min-h-[80px] resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Tags Input */}
+            <FormField
+              control={form.control}
+              name="tags"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tags</FormLabel>
+                  <FormControl>
+                    <TagInput
+                      tags={field.value}
+                      onTagsChange={field.onChange}
+                      suggestions={[...existingTags, ...tagSuggestions]}
+                      maxTags={10}
+                      placeholder="Add tags to organize your note..."
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              {/* Left side - Action buttons */}
+              <div className="space-y-3">
+                <div className="flex justify-center gap-2">
+                  <Button 
+                    type="submit" 
+                    size="sm"
+                    disabled={form.formState.isSubmitting}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    {form.formState.isSubmitting ? "Capturing..." : "Capture"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={form.formState.isSubmitting}
+                    onClick={() => {
+                      reset();
+                      setUploadedFiles([]);
+                      setTagSuggestions([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Right side - Drag and Drop Zone */}
+              <div
+                className={`
+                  border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer
+                  ${isDragOver ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
+                  ${!user ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className={`h-6 w-6 ${isDragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="text-xs text-muted-foreground">
+                    {user ? (
+                      <>
+                        <p className="font-medium">Drop files</p>
+                        <p className="text-xs">PDF, Word, Excel, images</p>
+                      </>
+                    ) : (
+                      <p className="font-medium">Sign in to upload</p>
+                    )}
+                  </div>
+                  {isUploading && (
+                    <p className="text-xs text-primary">Uploading...</p>
                   )}
                 </div>
-                {isUploading && (
-                  <p className="text-xs text-primary">Uploading...</p>
-                )}
               </div>
             </div>
-          </div>
-
-
-          <div className="flex justify-center gap-2">
-            <Button 
-              type="submit" 
-              size="sm"
-              disabled={isLoading || !title.trim()}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {isLoading ? "Capturing..." : "Capture"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={isLoading}
-              onClick={() => {
-                setTitle('');
-                setContent('');
-                setUploadedFiles([]);
-              }}
-            >
-              - Cancel
-            </Button>
-          </div>
-        </form>
+          </form>
+        </Form>
       </CardContent>
     </Card>
   );
