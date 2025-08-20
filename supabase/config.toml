@@ -1,1 +1,38 @@
 project_id = "lvnjmmazkftcjqxstoyn"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+# The default smtp_port is 54325.
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+port = 54327
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54328
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://lvnjmmazkftcjqxstoyn.supabase.co"]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+
+[functions.suggest-tags]
+verify_jwt = true

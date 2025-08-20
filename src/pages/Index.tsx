@@ -10,7 +10,8 @@ import FileManager from '@/components/FileManager';
 import { supabase } from '@/integrations/supabase/client';
 import { slugify } from '@/lib/slug';
 import { useToast } from '@/hooks/use-toast';
-import { Tag, FileText, Settings } from 'lucide-react';
+import { Tag, FileText, Settings, Sparkles } from 'lucide-react';
+import TagAutomationSidebar from '@/components/TagAutomationSidebar';
 
 const Index = () => {
   const { user, signOut, loading } = useAuth();
@@ -122,35 +123,39 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">Idea Foundry</h1>
-            <p className="text-xl text-muted-foreground">Capture, organize, and discover ideas</p>
+    <div className="min-h-screen bg-background flex">
+      <div className="flex-1 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Idea Foundry</h1>
+              <p className="text-xl text-muted-foreground">Capture, organize, and discover ideas</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/tags')}
+                className="flex items-center gap-2"
+              >
+                <Tag className="h-4 w-4" />
+                Tag Library
+              </Button>
+              <UserMenu />
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/tags')}
-              className="flex items-center gap-2"
-            >
-              <Tag className="h-4 w-4" />
-              Tag Library
-            </Button>
-            <UserMenu />
-          </div>
-        </div>
 
-        <div className="space-y-6">
-          <QuickCapture />
+          <div className="space-y-6">
+            <QuickCapture />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RecentNotes />
-            <FileManager />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <RecentNotes />
+              <FileManager />
+            </div>
           </div>
         </div>
       </div>
+      
+      <TagAutomationSidebar />
     </div>
   );
 };
