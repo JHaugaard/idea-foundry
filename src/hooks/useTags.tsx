@@ -1,6 +1,13 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
+export interface TagStats {
+  tag: string;
+  count: number;
+  notes: Array<{ id: string; title: string; }>;
+}
 
 export const useTags = () => {
   const { user } = useAuth();
@@ -74,11 +81,231 @@ export const useTags = () => {
     }
   };
 
+  // Get tag usage statistics
+  const {
+    data: tagStats = [],
+    isLoading: isStatsLoading
+  } = useQuery({
+    queryKey: ['tag-stats', user?.id],
+    queryFn: async (): Promise<TagStats[]> => {
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('notes')
+        .select('id, title, tags')
+        .eq('user_id', user.id)
+        .not('tags', 'is', null);
+
+      if (error) throw error;
+
+      // Calculate statistics
+      const tagMap = new Map<string, TagStats>();
+      
+      data.forEach(note => {
+        note.tags?.forEach((tag: string) => {
+          if (!tagMap.has(tag)) {
+            tagMap.set(tag, {
+              tag,
+              count: 0,
+              notes: []
+            });
+          }
+          const stats = tagMap.get(tag)!;
+          stats.count++;
+          stats.notes.push({ id: note.id, title: note.title });
+        });
+      });
+
+      return Array.from(tagMap.values()).sort((a, b) => b.count - a.count);
+    },
+    enabled: !!user,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+  });
+
+  // Mutation to update note tags
+  const updateNoteTags = useMutation({
+    mutationFn: async ({ noteId, tags }: { noteId: string; tags: string[] }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      const { error } = await supabase
+        .from('notes')
+        .update({ tags: tags.length > 0 ? tags : null })
+        .eq('id', noteId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tag-stats'] });
+    },
+  });
+
+  // Mutation for batch tag operations
+  const batchUpdateTags = useMutation({
+    mutationFn: async ({ 
+      noteIds, 
+      operation, 
+      tags 
+    }: { 
+      noteIds: string[]; 
+      operation: 'add' | 'remove' | 'replace'; 
+      tags: string[] 
+    }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      if (operation === 'replace') {
+        // Replace all tags
+        const { error } = await supabase
+          .from('notes')
+          .update({ tags: tags.length > 0 ? tags : null })
+          .in('id', noteIds)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // For add/remove, we need to fetch current tags first
+        const { data: notes, error: fetchError } = await supabase
+          .from('notes')
+          .select('id, tags')
+          .in('id', noteIds)
+          .eq('user_id', user.id);
+
+        if (fetchError) throw fetchError;
+
+        const updates = notes.map(note => {
+          const currentTags = note.tags || [];
+          let newTags: string[];
+
+          if (operation === 'add') {
+            newTags = [...new Set([...currentTags, ...tags])];
+          } else { // remove
+            newTags = currentTags.filter(tag => !tags.includes(tag));
+          }
+
+          return {
+            id: note.id,
+            tags: newTags.length > 0 ? newTags : null
+          };
+        });
+
+        // Update each note
+        for (const update of updates) {
+          const { error } = await supabase
+            .from('notes')
+            .update({ tags: update.tags })
+            .eq('id', update.id)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tag-stats'] });
+    },
+  });
+
+  // Mutation to replace a tag across all notes
+  const replaceTag = useMutation({
+    mutationFn: async ({ oldTag, newTag }: { oldTag: string; newTag: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Find all notes with the old tag
+      const { data: notes, error: fetchError } = await supabase
+        .from('notes')
+        .select('id, tags')
+        .eq('user_id', user.id)
+        .contains('tags', [oldTag]);
+
+      if (fetchError) throw fetchError;
+
+      // Update each note
+      for (const note of notes) {
+        const currentTags = note.tags || [];
+        const newTags = currentTags.map(tag => tag === oldTag ? newTag : tag);
+        
+        const { error } = await supabase
+          .from('notes')
+          .update({ tags: newTags })
+          .eq('id', note.id)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      }
+
+      return notes.length;
+    },
+    onSuccess: (updatedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['user-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tag-stats'] });
+      return updatedCount;
+    },
+  });
+
+  // Mutation to merge tags
+  const mergeTags = useMutation({
+    mutationFn: async ({ sourceTags, targetTag }: { sourceTags: string[]; targetTag: string }) => {
+      if (!user) throw new Error('User not authenticated');
+
+      // Find all notes with any of the source tags
+      const { data: notes, error: fetchError } = await supabase
+        .from('notes')
+        .select('id, tags')
+        .eq('user_id', user.id)
+        .or(sourceTags.map(tag => `tags.cs.{${tag}}`).join(','));
+
+      if (fetchError) throw fetchError;
+
+      let updatedCount = 0;
+      
+      // Update each note
+      for (const note of notes) {
+        const currentTags = note.tags || [];
+        const hasSourceTag = sourceTags.some(tag => currentTags.includes(tag));
+        
+        if (hasSourceTag) {
+          // Remove source tags and add target tag
+          const newTags = [
+            ...currentTags.filter(tag => !sourceTags.includes(tag)),
+            targetTag
+          ];
+          
+          // Remove duplicates
+          const uniqueTags = [...new Set(newTags)];
+          
+          const { error } = await supabase
+            .from('notes')
+            .update({ tags: uniqueTags })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+          updatedCount++;
+        }
+      }
+
+      return updatedCount;
+    },
+    onSuccess: (updatedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['user-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tag-stats'] });
+      return updatedCount;
+    },
+  });
+
   return {
     tags,
     isLoading,
     error,
+    tagStats,
+    isStatsLoading,
     invalidateTags,
-    getTagSuggestions
+    getTagSuggestions,
+    updateNoteTags,
+    batchUpdateTags,
+    replaceTag,
+    mergeTags,
   };
 };
