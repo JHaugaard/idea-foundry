@@ -36,3 +36,18 @@ refresh_token_rotation_enabled = true
 
 [functions.suggest-tags]
 verify_jwt = true
+
+[functions.note-embed]
+verify_jwt = true
+
+[functions.extract-backlinks]
+verify_jwt = true
+
+[functions.note-summarize]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.tag-operations]
+verify_jwt = true
