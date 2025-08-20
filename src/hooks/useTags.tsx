@@ -295,6 +295,48 @@ export const useTags = () => {
     },
   });
 
+  // Mutation to delete tags completely from all notes
+  const deleteTags = useMutation({
+    mutationFn: async (tagsToDelete: string[]) => {
+      if (!user) throw new Error('User not authenticated');
+
+      let deletedCount = 0;
+      
+      for (const tag of tagsToDelete) {
+        // Find all notes with this tag
+        const { data: notes, error: fetchError } = await supabase
+          .from('notes')
+          .select('id, tags')
+          .eq('user_id', user.id)
+          .contains('tags', [tag]);
+
+        if (fetchError) throw fetchError;
+
+        // Remove the tag from each note
+        for (const note of notes) {
+          const currentTags = note.tags || [];
+          const newTags = currentTags.filter(t => t !== tag);
+          
+          const { error } = await supabase
+            .from('notes')
+            .update({ tags: newTags.length > 0 ? newTags : null })
+            .eq('id', note.id)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+          deletedCount++;
+        }
+      }
+
+      return deletedCount;
+    },
+    onSuccess: (deletedCount) => {
+      queryClient.invalidateQueries({ queryKey: ['user-tags'] });
+      queryClient.invalidateQueries({ queryKey: ['tag-stats'] });
+      return deletedCount;
+    },
+  });
+
   return {
     tags,
     isLoading,
@@ -307,5 +349,6 @@ export const useTags = () => {
     batchUpdateTags,
     replaceTag,
     mergeTags,
+    deleteTags,
   };
 };
