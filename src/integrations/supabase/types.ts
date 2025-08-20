@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_tag_preferences: {
+        Row: {
+          auto_cleanup_suggestions: boolean
+          auto_suggest_enabled: boolean
+          auto_translate_tags: boolean
+          blacklisted_tags: string[] | null
+          confidence_threshold: number
+          created_at: string
+          duplicate_detection_enabled: boolean
+          id: string
+          learn_from_acceptances: boolean
+          learn_from_rejections: boolean
+          manual_review_required: boolean
+          max_suggestions_per_note: number
+          normalize_tags: boolean
+          personalization_level: string
+          primary_language: string
+          quality_scoring_enabled: boolean
+          updated_at: string
+          user_id: string
+          whitelisted_patterns: string[] | null
+        }
+        Insert: {
+          auto_cleanup_suggestions?: boolean
+          auto_suggest_enabled?: boolean
+          auto_translate_tags?: boolean
+          blacklisted_tags?: string[] | null
+          confidence_threshold?: number
+          created_at?: string
+          duplicate_detection_enabled?: boolean
+          id?: string
+          learn_from_acceptances?: boolean
+          learn_from_rejections?: boolean
+          manual_review_required?: boolean
+          max_suggestions_per_note?: number
+          normalize_tags?: boolean
+          personalization_level?: string
+          primary_language?: string
+          quality_scoring_enabled?: boolean
+          updated_at?: string
+          user_id: string
+          whitelisted_patterns?: string[] | null
+        }
+        Update: {
+          auto_cleanup_suggestions?: boolean
+          auto_suggest_enabled?: boolean
+          auto_translate_tags?: boolean
+          blacklisted_tags?: string[] | null
+          confidence_threshold?: number
+          created_at?: string
+          duplicate_detection_enabled?: boolean
+          id?: string
+          learn_from_acceptances?: boolean
+          learn_from_rejections?: boolean
+          manual_review_required?: boolean
+          max_suggestions_per_note?: number
+          normalize_tags?: boolean
+          personalization_level?: string
+          primary_language?: string
+          quality_scoring_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+          whitelisted_patterns?: string[] | null
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           created_at: string
@@ -267,6 +333,96 @@ export type Database = {
           backup_type?: string
           created_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tag_interaction_history: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          modified_to: string | null
+          note_content_snippet: string | null
+          note_id: string
+          other_note_tags: string[] | null
+          suggested_tag: string
+          suggestion_confidence: number
+          suggestion_source: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          modified_to?: string | null
+          note_content_snippet?: string | null
+          note_id: string
+          other_note_tags?: string[] | null
+          suggested_tag: string
+          suggestion_confidence: number
+          suggestion_source: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          modified_to?: string | null
+          note_content_snippet?: string | null
+          note_id?: string
+          other_note_tags?: string[] | null
+          suggested_tag?: string
+          suggestion_confidence?: number
+          suggestion_source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tag_quality_analysis: {
+        Row: {
+          co_occurrence_tags: string[] | null
+          created_at: string
+          id: string
+          issues: string[] | null
+          last_analyzed_at: string
+          merge_candidates: string[] | null
+          quality_score: number
+          replacement_suggestions: string[] | null
+          suggestions: string[] | null
+          tag_name: string
+          updated_at: string
+          usage_frequency: number
+          user_id: string
+        }
+        Insert: {
+          co_occurrence_tags?: string[] | null
+          created_at?: string
+          id?: string
+          issues?: string[] | null
+          last_analyzed_at?: string
+          merge_candidates?: string[] | null
+          quality_score: number
+          replacement_suggestions?: string[] | null
+          suggestions?: string[] | null
+          tag_name: string
+          updated_at?: string
+          usage_frequency?: number
+          user_id: string
+        }
+        Update: {
+          co_occurrence_tags?: string[] | null
+          created_at?: string
+          id?: string
+          issues?: string[] | null
+          last_analyzed_at?: string
+          merge_candidates?: string[] | null
+          quality_score?: number
+          replacement_suggestions?: string[] | null
+          suggestions?: string[] | null
+          tag_name?: string
+          updated_at?: string
+          usage_frequency?: number
           user_id?: string
         }
         Relationships: []
