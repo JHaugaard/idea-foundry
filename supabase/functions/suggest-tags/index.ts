@@ -13,7 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    const { content, title, existingTags = [] } = await req.json();
+    const { 
+      content, 
+      title, 
+      existingTags = [], 
+      noteId,
+      mode = 'suggestions', // 'suggestions', 'quality_analysis', 'cleanup', 'translation'
+      targetLanguage = 'en',
+      analysisType = 'content'
+    } = await req.json();
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
     if (!OPENAI_API_KEY) {
@@ -29,7 +37,14 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader! } }
     });
 
-    // Get user's existing tags for context
+    // Get user preferences
+    const { data: preferences } = await supabase
+      .from('ai_tag_preferences')
+      .select('*')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .single();
+
+    // Get user's existing tags and interaction history for context
     const { data: userNotes } = await supabase
       .from('notes')
       .select('tags')
@@ -39,19 +54,50 @@ serve(async (req) => {
       userNotes?.flatMap(note => note.tags || []) || []
     ));
 
-    const prompt = `Analyze this note and suggest 3-5 relevant tags. Consider:
-- Content themes and topics
-- Writing style and intent  
-- Key concepts and subjects
-- Existing user tags for consistency: ${allUserTags.slice(0, 20).join(', ')}
+    // Get user's tag interaction history for learning
+    const { data: interactionHistory } = await supabase
+      .from('tag_interaction_history')
+      .select('suggested_tag, action, modified_to')
+      .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+      .order('created_at', { ascending: false })
+      .limit(100);
 
-Note Title: ${title}
-Note Content: ${content}
+    const rejectedTags = interactionHistory
+      ?.filter(h => h.action === 'rejected')
+      .map(h => h.suggested_tag) || [];
+      
+    const acceptedTags = interactionHistory
+      ?.filter(h => h.action === 'accepted')
+      .map(h => h.suggested_tag) || [];
 
-Current tags: ${existingTags.join(', ')}
+    // Handle different modes
+    let prompt = '';
+    let systemMessage = '';
+    let model = 'gpt-4o-mini';
 
-Return ONLY a JSON array of suggested tag strings, lowercase and hyphen-separated.
-Example: ["productivity", "morning-routine", "health-habits"]`;
+    switch (mode) {
+      case 'suggestions':
+        systemMessage = 'You are an expert tagging assistant that suggests relevant, specific tags. Return only valid JSON arrays with tag confidence scores.';
+        prompt = buildSuggestionsPrompt(title, content, existingTags, allUserTags, rejectedTags, acceptedTags, preferences);
+        break;
+        
+      case 'quality_analysis':
+        systemMessage = 'You are a tag quality analyzer. Assess tag quality and suggest improvements. Return detailed analysis in JSON format.';
+        prompt = buildQualityAnalysisPrompt(existingTags, allUserTags);
+        model = 'gpt-5-mini-2025-08-07';
+        break;
+        
+      case 'cleanup':
+        systemMessage = 'You are a tag cleanup specialist. Identify duplicates, inconsistencies, and merge opportunities. Return structured JSON.';
+        prompt = buildCleanupPrompt(allUserTags);
+        model = 'gpt-5-mini-2025-08-07';
+        break;
+        
+      case 'translation':
+        systemMessage = 'You are a multilingual tag translator. Translate and normalize tags while preserving meaning.';
+        prompt = buildTranslationPrompt(existingTags, targetLanguage);
+        break;
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -60,13 +106,12 @@ Example: ["productivity", "morning-routine", "health-habits"]`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model,
         messages: [
-          { role: 'system', content: 'You are a helpful tagging assistant. Respond only with valid JSON arrays.' },
+          { role: 'system', content: systemMessage },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
-        max_tokens: 150,
+        max_completion_tokens: mode === 'suggestions' ? 200 : 800,
       }),
     });
 
@@ -75,46 +120,238 @@ Example: ["productivity", "morning-routine", "health-habits"]`;
     }
 
     const data = await response.json();
-    const suggestedTagsText = data.choices[0].message.content.trim();
+    const resultText = data.choices[0].message.content.trim();
     
-    let suggestedTags: string[];
+    let result: any;
     try {
-      suggestedTags = JSON.parse(suggestedTagsText);
+      result = JSON.parse(resultText);
     } catch {
-      // Fallback parsing if JSON is malformed
-      const matches = suggestedTagsText.match(/\[([^\]]+)\]/);
-      if (matches) {
-        suggestedTags = matches[1]
-          .split(',')
-          .map(tag => tag.trim().replace(/['"]/g, ''))
-          .filter(tag => tag.length > 0);
-      } else {
-        suggestedTags = [];
-      }
+      console.error('Failed to parse AI response:', resultText);
+      throw new Error('Invalid AI response format');
     }
 
-    // Filter out existing tags and format properly
-    const newTags = suggestedTags
-      .filter(tag => !existingTags.includes(tag))
-      .map(tag => tag.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-'))
-      .filter(tag => tag.length >= 2)
-      .slice(0, 5);
-
-    return new Response(JSON.stringify({ 
-      suggestions: newTags,
-      confidence: data.choices[0].finish_reason === 'stop' ? 'high' : 'medium'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // Process based on mode
+    switch (mode) {
+      case 'suggestions':
+        return handleSuggestions(result, existingTags, preferences, supabase, noteId);
+        
+      case 'quality_analysis':
+        return handleQualityAnalysis(result, supabase);
+        
+      case 'cleanup':
+        return handleCleanup(result, supabase);
+        
+      case 'translation':
+        return handleTranslation(result);
+        
+      default:
+        throw new Error(`Unknown mode: ${mode}`);
+    }
 
   } catch (error) {
-    console.error('Error in suggest-tags function:', error);
+    console.error('Error in enhanced suggest-tags function:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
-      suggestions: []
+      suggestions: [],
+      mode
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
+
+// Helper Functions
+
+function buildSuggestionsPrompt(title: string, content: string, existingTags: string[], allUserTags: string[], rejectedTags: string[], acceptedTags: string[], preferences: any) {
+  const maxSuggestions = preferences?.max_suggestions_per_note || 5;
+  const confidenceThreshold = preferences?.confidence_threshold || 0.6;
+  
+  return `Analyze this note and suggest ${maxSuggestions} highly relevant tags with confidence scores.
+
+CONTEXT:
+- Note Title: ${title}
+- Note Content: ${content}
+- Current tags: ${existingTags.join(', ') || 'none'}
+- User's tag vocabulary: ${allUserTags.slice(0, 30).join(', ')}
+- Previously rejected suggestions: ${rejectedTags.slice(0, 10).join(', ') || 'none'}
+- Previously accepted suggestions: ${acceptedTags.slice(0, 10).join(', ') || 'none'}
+
+REQUIREMENTS:
+- Minimum confidence threshold: ${confidenceThreshold}
+- Focus on specific, actionable tags over generic ones
+- Maintain consistency with user's existing vocabulary when possible
+- Consider semantic relationships and context
+- Avoid previously rejected tags unless context strongly suggests relevance
+
+Return JSON array of objects with format:
+[
+  {
+    "tag": "specific-tag-name",
+    "confidence": 0.85,
+    "reason": "Content analysis shows strong focus on this topic",
+    "category": "topic|action|context|meta"
+  }
+]`;
+}
+
+function buildQualityAnalysisPrompt(existingTags: string[], allUserTags: string[]) {
+  return `Analyze the quality of these tags and provide improvement suggestions.
+
+TAGS TO ANALYZE: ${existingTags.join(', ')}
+USER'S FULL TAG VOCABULARY: ${allUserTags.join(', ')}
+
+Return JSON with format:
+{
+  "overall_quality": 0.75,
+  "tag_analysis": [
+    {
+      "tag": "tag-name",
+      "quality_score": 0.8,
+      "issues": ["too_generic", "inconsistent_format"],
+      "suggestions": ["more-specific-alternative", "better-formatted-version"],
+      "merge_candidates": ["similar-tag-1", "similar-tag-2"]
+    }
+  ],
+  "duplicates": [
+    {
+      "group": ["tag1", "tag2", "tag3"],
+      "suggested_merge": "unified-tag-name",
+      "confidence": 0.9
+    }
+  ],
+  "recommendations": [
+    "Consolidate similar tags",
+    "Use more specific terminology"
+  ]
+}`;
+}
+
+function buildCleanupPrompt(allUserTags: string[]) {
+  return `Analyze this tag collection for cleanup opportunities.
+
+ALL USER TAGS: ${allUserTags.join(', ')}
+
+Return JSON with format:
+{
+  "duplicates": [
+    {
+      "group": ["similar-tag-1", "similar-tag-2"],
+      "suggested_merge": "best-unified-name",
+      "confidence": 0.9,
+      "reason": "Semantic similarity"
+    }
+  ],
+  "inconsistencies": [
+    {
+      "tags": ["inconsistent-format-tag"],
+      "issue": "formatting",
+      "suggested_fix": "consistent-format-tag"
+    }
+  ],
+  "underused": [
+    {
+      "tag": "rarely-used-tag",
+      "usage_count": 1,
+      "suggested_action": "merge_with_popular_equivalent"
+    }
+  ],
+  "recommendations": {
+    "priority": "high|medium|low",
+    "summary": "Brief description of recommended actions"
+  }
+}`;
+}
+
+function buildTranslationPrompt(tags: string[], targetLanguage: string) {
+  return `Translate and normalize these tags to ${targetLanguage} while preserving semantic meaning.
+
+TAGS: ${tags.join(', ')}
+TARGET LANGUAGE: ${targetLanguage}
+
+Return JSON with format:
+{
+  "translations": [
+    {
+      "original": "original-tag",
+      "translated": "translated-tag", 
+      "confidence": 0.95,
+      "notes": "Additional context if needed"
+    }
+  ]
+}`;
+}
+
+async function handleSuggestions(result: any, existingTags: string[], preferences: any, supabase: any, noteId?: string) {
+  const suggestions = result
+    .filter((item: any) => !existingTags.includes(item.tag))
+    .filter((item: any) => !preferences?.blacklisted_tags?.includes(item.tag));
+
+  // Log suggestions for learning (if noteId provided)
+  if (noteId && suggestions.length > 0) {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    for (const suggestion of suggestions) {
+      await supabase.from('tag_interaction_history').insert({
+        user_id: userId,
+        suggested_tag: suggestion.tag,
+        note_id: noteId,
+        suggestion_source: 'content_ai',
+        suggestion_confidence: suggestion.confidence,
+        note_content_snippet: null,
+        other_note_tags: existingTags
+      });
+    }
+  }
+
+  return new Response(JSON.stringify({ 
+    suggestions,
+    mode: 'suggestions',
+    count: suggestions.length
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleQualityAnalysis(result: any, supabase: any) {
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  
+  // Store quality analysis results
+  for (const tagAnalysis of result.tag_analysis) {
+    await supabase.from('tag_quality_analysis').upsert({
+      user_id: userId,
+      tag_name: tagAnalysis.tag,
+      quality_score: tagAnalysis.quality_score,
+      issues: tagAnalysis.issues,
+      suggestions: tagAnalysis.suggestions,
+      merge_candidates: tagAnalysis.merge_candidates,
+      last_analyzed_at: new Date().toISOString()
+    }, { 
+      onConflict: 'user_id,tag_name' 
+    });
+  }
+
+  return new Response(JSON.stringify({ 
+    ...result,
+    mode: 'quality_analysis'
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleCleanup(result: any, supabase: any) {
+  return new Response(JSON.stringify({ 
+    ...result,
+    mode: 'cleanup'
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function handleTranslation(result: any) {
+  return new Response(JSON.stringify({ 
+    ...result,
+    mode: 'translation'
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
