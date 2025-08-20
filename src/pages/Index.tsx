@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import UserMenu from "@/components/UserMenu";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import QuickCapture from '@/components/QuickCapture';
 import RecentNotes from '@/components/RecentNotes';
 import FileManager from '@/components/FileManager';
 import { supabase } from '@/integrations/supabase/client';
 import { slugify } from '@/lib/slug';
 import { useToast } from '@/hooks/use-toast';
+import { Tag, FileText, Settings } from 'lucide-react';
 
 const Index = () => {
   const { user, signOut, loading } = useAuth();
@@ -128,6 +130,14 @@ const Index = () => {
             <p className="text-xl text-muted-foreground">Capture, organize, and discover ideas</p>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/tags')}
+              className="flex items-center gap-2"
+            >
+              <Tag className="h-4 w-4" />
+              Tag Library
+            </Button>
             <UserMenu />
           </div>
         </div>

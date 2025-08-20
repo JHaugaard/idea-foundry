@@ -7,6 +7,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import TagLibrary from "./pages/TagLibrary";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -17,6 +18,7 @@ const App = () => {
         [
           { path: "/", element: <Index /> },
           { path: "/auth", element: <Auth /> },
+          { path: "/tags", element: <TagLibrary /> },
           { path: "*", element: <NotFound /> },
         ],
         {
