@@ -108,7 +108,15 @@ const Index = () => {
   }
 
   if (!user) {
-    return null; // Will redirect to auth
+    // Force navigation to auth if not authenticated
+    navigate('/auth');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <h2 className="text-xl">Redirecting to authentication...</h2>
+        </div>
+      </div>
+    );
   }
 
   return (
