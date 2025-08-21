@@ -113,8 +113,8 @@ const QuickCapture = () => {
   }, []);
 
   const generateTemporaryTitle = (content: string): string => {
-    // Generate AI-like title from first few words of content (5-10 words)
-    const words = content.trim().split(/\s+/).slice(0, 8);
+    // Use first five words of content as placeholder title
+    const words = content.trim().split(/\s+/).slice(0, 5);
     return words.length > 0 ? words.join(' ') : 'New Note';
   };
 
