@@ -119,6 +119,48 @@ export type Database = {
         }
         Relationships: []
       }
+      invitation_tokens: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_uses: number | null
+          email: string | null
+          expires_at: string
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          token: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_uses?: number | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       note_embeddings: {
         Row: {
           created_at: string
@@ -588,6 +630,18 @@ export type Database = {
       sparsevec_typmod_in: {
         Args: { "": unknown[] }
         Returns: number
+      }
+      use_invitation_token: {
+        Args: { token_uuid: string; user_id: string }
+        Returns: boolean
+      }
+      validate_invitation_token: {
+        Args: { token_uuid: string }
+        Returns: {
+          email: string
+          is_valid: boolean
+          token_id: string
+        }[]
       }
       validate_tag_name: {
         Args: { tag_name: string }
