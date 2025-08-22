@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTags } from '@/hooks/useTags';
 import { useTagAutomation } from '@/hooks/useTagAutomation';
 import BatchTagOperations from '@/components/BatchTagOperations';
 import TagAutomationPanel from '@/components/TagAutomationPanel';
+import TokenManagement from '@/components/TokenManagement';
 import { 
   Sparkles, 
   Zap, 
@@ -15,7 +17,8 @@ import {
   Clock,
   BarChart3,
   Settings,
-  RefreshCw
+  RefreshCw,
+  KeyRound
 } from 'lucide-react';
 
 interface TagAutomationSidebarProps {
@@ -41,19 +44,34 @@ export default function TagAutomationSidebar({ selectedNotes = [] }: TagAutomati
   const recentOperations = operationHistory.slice(0, 3);
 
   return (
-    <div className="w-80 border-l bg-sidebar p-4 space-y-4 overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sidebar-foreground">Tag Automation</h3>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={invalidateTags}
-          disabled={isLoading}
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
+    <div className="w-80 border-l bg-sidebar overflow-y-auto">
+      <Tabs defaultValue="automation" className="h-full">
+        <div className="p-4 border-b border-sidebar-border">
+          <TabsList className="grid w-full grid-cols-2 bg-sidebar-accent">
+            <TabsTrigger value="automation" className="flex items-center gap-2 text-xs">
+              <Sparkles className="h-3 w-3" />
+              Tags
+            </TabsTrigger>
+            <TabsTrigger value="tokens" className="flex items-center gap-2 text-xs">
+              <KeyRound className="h-3 w-3" />
+              Tokens
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="automation" className="p-4 space-y-4 mt-0">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-sidebar-foreground">Tag Automation</h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={invalidateTags}
+              disabled={isLoading}
+              className="text-sidebar-foreground hover:bg-sidebar-accent"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
 
       {/* Quick Stats */}
       <Card className="bg-sidebar-accent border-sidebar-border">
@@ -221,7 +239,13 @@ export default function TagAutomationSidebar({ selectedNotes = [] }: TagAutomati
             </div>
           </div>
         </div>
-      )}
+          )}
+        </TabsContent>
+
+        <TabsContent value="tokens" className="p-4 mt-0">
+          <TokenManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
