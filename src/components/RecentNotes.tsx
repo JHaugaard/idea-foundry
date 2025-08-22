@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotes } from '@/hooks/useNotes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,8 +24,6 @@ interface Note {
 }
 
 const RecentNotes = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -33,29 +31,7 @@ const RecentNotes = () => {
   
   const { user } = useAuth();
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (user) {
-      fetchNotes();
-    }
-  }, [user]);
-
-  const fetchNotes = async () => {
-    try {
-        const query = supabase.from('notes').select('*') as any;
-        const { data, error } = await query
-          .eq('user_id', user?.id as string)
-          .eq('review_status', 'not_reviewed')
-          .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setNotes(data || []);
-    } catch (error) {
-      console.error('Error fetching notes:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { notes, isLoading, invalidateNotes } = useNotes();
 
   const handleNoteClick = (note: Note) => {
     setSelectedNote(note);
@@ -63,9 +39,8 @@ const RecentNotes = () => {
   };
 
   const handleTagsUpdate = (noteId: string, newTags: string[]) => {
-    setNotes(prev => prev.map(note => 
-      note.id === noteId ? { ...note, tags: newTags } : note
-    ));
+    // Invalidate to refetch latest data
+    invalidateNotes();
   };
 
   if (isLoading) {
@@ -110,7 +85,7 @@ const RecentNotes = () => {
                   Batch Operations
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={fetchNotes}>
+                <DropdownMenuItem onClick={invalidateNotes}>
                   <Edit3 className="h-4 w-4 mr-2" />
                   Refresh Notes
                 </DropdownMenuItem>
@@ -182,7 +157,7 @@ const RecentNotes = () => {
         onCompleted={() => {
           setDialogOpen(false);
           setSelectedNote(null);
-          fetchNotes();
+          invalidateNotes();
         }}
       />
 
@@ -196,7 +171,7 @@ const RecentNotes = () => {
         onOpenChange={setBatchOperationsOpen}
         notes={notes}
         onCompleted={() => {
-          fetchNotes();
+          invalidateNotes();
           setBatchOperationsOpen(false);
         }}
       />

@@ -1,0 +1,46 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string | null;
+  tags: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const useNotes = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const notesQuery = useQuery({
+    queryKey: ['notes', 'not_reviewed', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('review_status', 'not_reviewed')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const invalidateNotes = () => {
+    queryClient.invalidateQueries({ queryKey: ['notes', 'not_reviewed', user?.id] });
+  };
+
+  return {
+    notes: notesQuery.data || [],
+    isLoading: notesQuery.isLoading,
+    error: notesQuery.error,
+    invalidateNotes,
+  };
+};

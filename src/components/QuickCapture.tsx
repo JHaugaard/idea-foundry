@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { slugify } from '@/lib/slug';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseStorage } from '@/hooks/useSupabaseStorage';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Lightbulb, Upload, X, FileText } from 'lucide-react';
 
 // Form validation schema - simplified for capture only
@@ -30,6 +31,7 @@ const QuickCapture = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useSupabaseStorage();
+  const queryClient = useQueryClient();
 
   // Initialize form with validation
   const form = useForm<FormData>({
@@ -180,6 +182,9 @@ const QuickCapture = () => {
       // Clear form 
       reset();
       setUploadedFiles([]);
+
+      // Refresh the notes list to show the new note
+      queryClient.invalidateQueries({ queryKey: ['notes', 'not_reviewed', user.id] });
 
       toast({
         title: "Note captured!",
