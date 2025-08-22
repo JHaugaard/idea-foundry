@@ -43,8 +43,8 @@ const BacklinkReviewDialog: React.FC<Props> = ({ open, onOpenChange, note, onCom
   const [slugMatches, setSlugMatches] = useState<Record<string, NoteLite | null>>({});
   const [createMissing, setCreateMissing] = useState(false);
 
-  // Feature flag: temporarily disable backlink processing
-  const BACKLINKS_ENABLED = false;
+  // Feature flag: re-enable backlink processing
+  const BACKLINKS_ENABLED = true;
 
   const uniqueSlugs = useMemo(() => Array.from(new Set(entities.map(e => e.canonical.slug))), [entities]);
 
