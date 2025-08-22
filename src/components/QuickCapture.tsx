@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { BracketLinkingTextarea } from '@/components/BracketLinkingTextarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { slugify } from '@/lib/slug';
@@ -218,10 +218,11 @@ const QuickCapture = () => {
                 <FormItem>
                   <FormLabel>Enter text, paste content, images, or links</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Type or paste your content here..."
+                    <BracketLinkingTextarea
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Type or paste your content here... Use [[Note Title]] to link to other notes"
                       className="min-h-[120px] resize-none"
-                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
