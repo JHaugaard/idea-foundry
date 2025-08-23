@@ -26,7 +26,7 @@ export function SearchResults({
   maxResults = 50,
   showEmptyState = true 
 }: SearchResultsProps) {
-  const { searchResults, isLoading, searchQuery, highlightContent } = useEnhancedSearch();
+  const { searchResults, isLoading, isEnhancing, searchQuery, highlightContent } = useEnhancedSearch();
 
   if (isLoading) {
     return (
@@ -79,6 +79,16 @@ export function SearchResults({
 
   return (
     <div className="space-y-4">
+      {/* Enhancement indicator */}
+      {isEnhancing && searchQuery.text.trim() && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="flex items-center gap-2 py-3">
+            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
+            <span className="text-sm text-blue-700">Enhancing results with semantic search...</span>
+          </CardContent>
+        </Card>
+      )}
+      
       {displayResults.map((result) => (
         <SearchResultCard
           key={result.id}
@@ -155,11 +165,41 @@ function SearchResultCard({ result, onSelect, highlightContent, searchText }: Se
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            {result.score && (
-              <Badge variant="outline" className="text-xs">
-                {Math.round(result.score * 100)}%
+            {/* Similarity score badge */}
+            {result.similarity_score && (
+              <Badge variant="secondary" className="text-xs">
+                {Math.round(result.similarity_score * 100)}% similar
               </Badge>
             )}
+            
+            {/* Search type badge */}
+            <Badge 
+              variant={
+                result.search_type === 'semantic' ? 'default' :
+                result.search_type === 'hybrid' ? 'destructive' :
+                'outline'
+              } 
+              className="text-xs"
+            >
+              {result.search_type === 'semantic' ? '🧠' :
+               result.search_type === 'hybrid' ? '⚡' :
+               '🔍'} {result.search_type}
+            </Badge>
+            
+            {/* Result tier badge */}
+            {result.tier && (
+              <Badge 
+                variant={
+                  result.tier === 'exact' ? 'default' :
+                  result.tier === 'high' ? 'secondary' :
+                  'outline'
+                } 
+                className="text-xs"
+              >
+                {result.tier}
+              </Badge>
+            )}
+            
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
               <ExternalLink className="h-3 w-3" />
             </Button>

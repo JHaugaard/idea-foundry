@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +45,9 @@ export interface SearchResult {
   score: number;
   matchedTags: string[];
   highlightedContent?: string;
+  similarity_score?: number;
+  search_type: 'fuzzy' | 'semantic' | 'hybrid';
+  tier?: 'exact' | 'high' | 'medium' | 'related';
 }
 
 export function useEnhancedSearch() {
@@ -59,6 +62,8 @@ export function useEnhancedSearch() {
   });
   
   const [recentSearches, setRecentSearches] = useState<SearchQuery[]>([]);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [hybridResults, setHybridResults] = useState<SearchResult[]>([]);
 
   // Get all notes for searching
   const { data: allNotes = [], isLoading: notesLoading } = useQuery({
@@ -107,8 +112,8 @@ export function useEnhancedSearch() {
     });
   }, [allNotes]);
 
-  // Enhanced search function
-  const performSearch = useCallback((query: SearchQuery): SearchResult[] => {
+  // Fuzzy search function (immediate results)
+  const performFuzzySearch = useCallback((query: SearchQuery): SearchResult[] => {
     if (!allNotes.length) return [];
 
     let results: SearchResult[] = [];
@@ -127,6 +132,7 @@ export function useEnhancedSearch() {
         .map(note => ({
           ...note,
           score: 1,
+          search_type: 'fuzzy' as const,
           matchedTags: note.tags?.filter(tag => 
             tag.toLowerCase().includes(tagQuery)
           ) || []
@@ -137,6 +143,7 @@ export function useEnhancedSearch() {
       results = fuseResults.map(result => ({
         ...result.item,
         score: 1 - (result.score || 0),
+        search_type: 'fuzzy' as const,
         matchedTags: result.item.tags?.filter(tag =>
           tag.toLowerCase().includes(query.text.toLowerCase())
         ) || []
@@ -146,12 +153,72 @@ export function useEnhancedSearch() {
       results = allNotes.map(note => ({
         ...note,
         score: 1,
+        search_type: 'fuzzy' as const,
         matchedTags: []
       }));
     }
 
+    return applyFiltersAndSort(results, query);
+  }, [allNotes, fuse]);
+
+  // Semantic search function
+  const performSemanticSearch = useCallback(async (query: SearchQuery): Promise<SearchResult[]> => {
+    if (!query.text.trim() || !user?.id) return [];
+
+    try {
+      // Generate embedding for the search query using the note-embed edge function
+      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('note-embed', {
+        body: { text: query.text }
+      });
+
+      if (embeddingError || !embeddingData?.embedding) {
+        console.warn('Failed to generate embedding for search:', embeddingError);
+        return [];
+      }
+
+      // Call match_notes function with the embedding
+      const { data: semanticResults, error: searchError } = await supabase.rpc('match_notes', {
+        query_embedding: embeddingData.embedding,
+        match_threshold: 0.3, // Lower threshold for broader results
+        match_count: 20
+      });
+
+      if (searchError) {
+        console.warn('Semantic search failed:', searchError);
+        return [];
+      }
+
+      if (!semanticResults?.length) return [];
+
+      // Convert to SearchResult format by joining with allNotes
+      const results: SearchResult[] = semanticResults
+        .map(result => {
+          const note = allNotes.find(n => n.id === result.note_id);
+          if (!note) return null;
+
+          return {
+            ...note,
+            score: result.similarity,
+            similarity_score: result.similarity,
+            search_type: 'semantic' as const,
+            matchedTags: note.tags?.filter(tag =>
+              tag.toLowerCase().includes(query.text.toLowerCase())
+            ) || []
+          };
+        })
+        .filter(Boolean) as SearchResult[];
+
+      return results;
+    } catch (error) {
+      console.warn('Semantic search error:', error);
+      return [];
+    }
+  }, [allNotes, user?.id]);
+
+  // Apply filters and sorting
+  const applyFiltersAndSort = useCallback((results: SearchResult[], query: SearchQuery): SearchResult[] => {
     // Apply filters
-    results = results.filter(note => {
+    let filteredResults = results.filter(note => {
       // Tag filters (AND logic)
       if (query.filters.tags.length > 0) {
         const hasAllTags = query.filters.tags.every(tag =>
@@ -191,19 +258,101 @@ export function useEnhancedSearch() {
       return true;
     });
 
+    // Boost recent notes (last 30 days) by 10%
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    filteredResults = filteredResults.map(result => ({
+      ...result,
+      score: new Date(result.updated_at) > thirtyDaysAgo 
+        ? result.score * 1.1 
+        : result.score
+    }));
+
     // Sort by relevance score and recency
-    results.sort((a, b) => {
+    filteredResults.sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
     });
 
-    return results;
-  }, [allNotes, fuse]);
+    return filteredResults;
+  }, []);
 
-  // Get search results
-  const searchResults = useMemo(() => {
-    return performSearch(searchQuery);
-  }, [searchQuery, performSearch]);
+  // Merge and rank hybrid results
+  const mergeHybridResults = useCallback((fuzzyResults: SearchResult[], semanticResults: SearchResult[]): SearchResult[] => {
+    const seenIds = new Set<string>();
+    const merged: SearchResult[] = [];
+
+    // Combine results with weighted scoring: 60% semantic + 40% fuzzy
+    const allResults = [...fuzzyResults, ...semanticResults];
+    
+    allResults.forEach(result => {
+      if (seenIds.has(result.id)) {
+        // Merge duplicate results
+        const existingIndex = merged.findIndex(r => r.id === result.id);
+        if (existingIndex >= 0) {
+          const existing = merged[existingIndex];
+          const fuzzyScore = existing.search_type === 'fuzzy' ? existing.score : result.score;
+          const semanticScore = result.search_type === 'semantic' ? result.score : existing.score;
+          
+          merged[existingIndex] = {
+            ...existing,
+            score: (semanticScore * 0.6) + (fuzzyScore * 0.4),
+            search_type: 'hybrid' as const,
+            similarity_score: result.similarity_score || existing.similarity_score,
+          };
+        }
+      } else {
+        seenIds.add(result.id);
+        merged.push(result);
+      }
+    });
+
+    // Assign result tiers based on score
+    const tieredResults = merged.map(result => ({
+      ...result,
+      tier: result.score > 0.9 ? 'exact' as const :
+            result.score > 0.7 ? 'high' as const :
+            result.score > 0.5 ? 'medium' as const :
+            'related' as const
+    }));
+
+    // Sort by score descending
+    tieredResults.sort((a, b) => b.score - a.score);
+
+    return tieredResults;
+  }, []);
+
+  // Enhanced hybrid search with progressive loading
+  const performHybridSearch = useCallback(async (query: SearchQuery) => {
+    if (!query.text.trim()) {
+      const fuzzyResults = performFuzzySearch(query);
+      setHybridResults(fuzzyResults);
+      return;
+    }
+
+    setIsEnhancing(true);
+    
+    // Get immediate fuzzy results
+    const fuzzyResults = performFuzzySearch(query);
+    setHybridResults(fuzzyResults);
+
+    try {
+      // Perform semantic search in parallel
+      const semanticResults = await performSemanticSearch(query);
+      
+      // Merge results with weighted scoring
+      const mergedResults = mergeHybridResults(fuzzyResults, semanticResults);
+      setHybridResults(mergedResults);
+    } catch (error) {
+      console.warn('Hybrid search enhancement failed:', error);
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [performFuzzySearch, performSemanticSearch, mergeHybridResults]);
+
+  // Trigger hybrid search when query changes
+  React.useEffect(() => {
+    performHybridSearch(searchQuery);
+  }, [searchQuery, performHybridSearch]);
 
   // Save search mutation
   const saveSearchMutation = useMutation({
@@ -293,8 +442,9 @@ export function useEnhancedSearch() {
   return {
     searchQuery,
     updateSearchQuery,
-    searchResults,
+    searchResults: hybridResults,
     isLoading: notesLoading,
+    isEnhancing,
     savedSearches,
     recentSearches,
     saveSearch: saveSearchMutation.mutate,
