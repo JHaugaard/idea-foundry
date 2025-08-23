@@ -13,6 +13,7 @@ import BacklinkReviewDialog from '@/components/BacklinkReviewDialog';
 import InlineTagEditor from '@/components/InlineTagEditor';
 import TagManagementDialog from '@/components/TagManagementDialog';
 import BatchTagOperations from '@/components/BatchTagOperations';
+import LinkifiedContent from '@/components/LinkifiedContent';
 
 interface Note {
   id: string;
@@ -123,9 +124,11 @@ const RecentNotes = () => {
                           </div>
                         </div>
                         {note.content && (
-                          <p className="text-xs text-muted-foreground line-clamp-2 mt-2">
-                            {note.content}
-                          </p>
+                          <LinkifiedContent 
+                            content={note.content}
+                            sourceNoteId={note.id}
+                            className="text-xs text-muted-foreground line-clamp-2 mt-2"
+                          />
                         )}
                       </div>
                       
