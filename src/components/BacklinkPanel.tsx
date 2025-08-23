@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import LinkifiedContent from '@/components/LinkifiedContent';
 
 interface BacklinkPanelProps {
   noteId: string | null;
@@ -82,9 +83,11 @@ function BacklinkEntry({ backlink, onNavigateToNote }: BacklinkEntryProps) {
             )}
             
             {context && (
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                ...{context}...
-              </p>
+              <LinkifiedContent
+                content={`...${context}...`}
+                sourceNoteId={backlink.source_note_id}
+                className="text-xs text-muted-foreground leading-relaxed"
+              />
             )}
           </div>
         </div>
