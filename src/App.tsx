@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Signup from "./pages/Signup";
 import TagLibrary from "./pages/TagLibrary";
 import LinkExplorer from "./pages/LinkExplorer";
+import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const App = () => {
@@ -23,6 +24,7 @@ const App = () => {
           { path: "/signup", element: <Signup /> },
           { path: "/tags", element: <TagLibrary /> },
           { path: "/links", element: <LinkExplorer /> },
+          { path: "/analytics", element: <Analytics /> },
           { path: "*", element: <NotFound /> },
         ],
         {

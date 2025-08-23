@@ -10,7 +10,7 @@ import FileManager from '@/components/FileManager';
 import { supabase } from '@/integrations/supabase/client';
 import { slugify } from '@/lib/slug';
 import { useToast } from '@/hooks/use-toast';
-import { Tag, FileText, Settings, Sparkles, Network } from 'lucide-react';
+import { Tag, FileText, Settings, Sparkles, Network, BarChart3 } from 'lucide-react';
 import TagAutomationSidebar from '@/components/TagAutomationSidebar';
 
 const Index = () => {
@@ -147,6 +147,14 @@ const Index = () => {
               >
                 <Network className="h-4 w-4" />
                 Link Explorer
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/analytics')}
+                className="flex items-center gap-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Analytics
               </Button>
               <UserMenu />
             </div>
