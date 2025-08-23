@@ -55,6 +55,7 @@ export const useLinkData = (sourceNoteId?: string) => {
     },
     enabled: !!user && !!sourceNoteId,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache time
   });
 };
 
@@ -83,6 +84,7 @@ export const useNotePreview = (noteId?: string) => {
       };
     },
     enabled: !!user && !!noteId,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes for link previews
+    gcTime: 10 * 60 * 1000, // 10 minutes cache time
   });
 };
