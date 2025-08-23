@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Check, Plus, FileText, Calendar, Loader2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +52,7 @@ export function BracketSuggestions({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isCreatingNote, setIsCreatingNote] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleCreateNote = useCallback(async () => {
     if (!user || !searchQuery.trim()) return;
@@ -118,13 +120,13 @@ export function BracketSuggestions({
       style={{
         top: position.top + 20,
         left: position.left,
-        maxWidth: '320px',
-        minWidth: '280px'
+        maxWidth: isMobile ? '90vw' : '320px',
+        minWidth: isMobile ? '280px' : '280px'
       }}
     >
       <Card className="shadow-lg border bg-popover p-0">
         <Command className="rounded-lg border-none">
-          <CommandList className="max-h-64">
+          <CommandList className={isMobile ? "max-h-80" : "max-h-64"}>
             {isSearching ? (
               <div className="flex items-center justify-center p-4 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -137,23 +139,23 @@ export function BracketSuggestions({
                     {searchResults.map((note, index) => (
                       <CommandItem
                         key={note.id}
-                        className={`p-3 cursor-pointer ${
+                        className={`${isMobile ? 'p-4' : 'p-3'} cursor-pointer ${
                           index === selectedIndex ? 'bg-accent' : ''
-                        }`}
+                        } ${isMobile ? 'min-h-[44px]' : ''}`}
                         onMouseEnter={() => {}}
                         onSelect={() => onSelect(note)}
                       >
                         <div className="flex items-start gap-3 w-full">
-                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                          <FileText className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground mt-0.5 flex-shrink-0`} />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate mb-1">
+                            <div className={`font-medium ${isMobile ? 'text-base' : 'text-sm'} truncate mb-1`}>
                               {note.title}
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                              <Calendar className="h-3 w-3" />
+                            <div className={`flex items-center gap-2 ${isMobile ? 'text-sm' : 'text-xs'} text-muted-foreground mb-1`}>
+                              <Calendar className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'}`} />
                               {format(new Date(note.created_at), 'MMM d, yyyy')}
                             </div>
-                            {note.excerpt && (
+                            {note.excerpt && !isMobile && (
                               <div className="text-xs text-muted-foreground line-clamp-2">
                                 {note.excerpt}
                               </div>
@@ -167,24 +169,24 @@ export function BracketSuggestions({
                 
                 {searchQuery.trim() && (
                   <CommandGroup heading="Create New">
-                    <CommandItem
-                      className={`p-3 cursor-pointer ${
-                        selectedIndex === searchResults.length ? 'bg-accent' : ''
-                      }`}
-                      onSelect={handleCreateNote}
-                      disabled={isCreatingNote}
-                    >
+                  <CommandItem
+                    className={`${isMobile ? 'p-4' : 'p-3'} cursor-pointer ${
+                      selectedIndex === searchResults.length ? 'bg-accent' : ''
+                    } ${isMobile ? 'min-h-[44px]' : ''}`}
+                    onSelect={handleCreateNote}
+                    disabled={isCreatingNote}
+                  >
                       <div className="flex items-center gap-3 w-full">
                         {isCreatingNote ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <Loader2 className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} animate-spin text-muted-foreground`} />
                         ) : (
-                          <Plus className="h-4 w-4 text-muted-foreground" />
+                          <Plus className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} text-muted-foreground`} />
                         )}
                         <div className="flex-1">
-                          <div className="font-medium text-sm">
+                          <div className={`font-medium ${isMobile ? 'text-base' : 'text-sm'}`}>
                             Create "{searchQuery.trim()}"
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className={`${isMobile ? 'text-sm' : 'text-xs'} text-muted-foreground`}>
                             New note will be created
                           </div>
                         </div>
