@@ -1,19 +1,15 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { useEnhancedSearch, SearchResult } from '@/hooks/useEnhancedSearch';
-import { formatDistanceToNow } from 'date-fns';
+import { useEnhancedSearch } from '@/hooks/useEnhancedSearch';
 import { 
-  FileText, 
-  Calendar, 
-  Tag as TagIcon, 
-  Pin, 
-  ExternalLink,
-  Search
+  Search,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
+import { SearchResultsGroup } from './SearchResultsGroup';
+import { SearchMetrics } from './SearchMetrics';
 
 interface SearchResultsProps {
   onNoteSelect?: (noteId: string) => void;
@@ -26,18 +22,47 @@ export function SearchResults({
   maxResults = 50,
   showEmptyState = true 
 }: SearchResultsProps) {
-  const { searchResults, isLoading, isEnhancing, searchQuery, highlightContent } = useEnhancedSearch();
+  const { 
+    searchResults, 
+    isLoading, 
+    isEnhancing, 
+    searchQuery, 
+    highlightContent 
+  } = useEnhancedSearch();
+
+  // Group results by tier
+  const groupedResults = React.useMemo(() => {
+    const groups = {
+      exact: searchResults.filter(r => r.tier === 'exact'),
+      high: searchResults.filter(r => r.tier === 'high'),
+      medium: searchResults.filter(r => r.tier === 'medium'),
+      related: searchResults.filter(r => r.tier === 'related'),
+    };
+    return groups;
+  }, [searchResults]);
+
+  // Calculate metrics
+  const totalResults = searchResults.length;
+  const semanticResults = searchResults.filter(r => 
+    r.search_type === 'semantic' || r.search_type === 'hybrid'
+  ).length;
+  const hasSemanticSearch = searchQuery.text.trim().length > 0;
+  const searchType = semanticResults > 0 ? 'hybrid' : 'fuzzy';
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
           <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="space-y-2">
+            <CardContent className="p-6">
+              <div className="space-y-3">
                 <div className="h-4 bg-muted rounded w-3/4"></div>
                 <div className="h-3 bg-muted rounded w-full"></div>
                 <div className="h-3 bg-muted rounded w-2/3"></div>
+                <div className="flex gap-2">
+                  <div className="h-5 bg-muted rounded w-16"></div>
+                  <div className="h-5 bg-muted rounded w-20"></div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -50,195 +75,140 @@ export function SearchResults({
     if (!showEmptyState) return null;
     
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-          <Search className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">No results found</h3>
-          <p className="text-muted-foreground mb-4">
-            {searchQuery.text || searchQuery.filters.tags.length > 0
-              ? "Try adjusting your search terms or filters"
-              : "Start searching to find your notes"}
-          </p>
-          {(searchQuery.text || searchQuery.filters.tags.length > 0) && (
-            <div className="text-sm text-muted-foreground">
-              <p className="mb-2">Suggestions:</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Check your spelling</li>
-                <li>Try different keywords</li>
-                <li>Remove some filters</li>
-                <li>Search for broader terms</li>
-              </ul>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {/* Show search metrics even with no results */}
+        {searchQuery.text.trim() && (
+          <SearchMetrics
+            totalResults={0}
+            totalNotes={0}
+            notesWithEmbeddings={0}
+            searchType={searchType}
+          />
+        )}
+        
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <Search className="h-16 w-16 text-muted-foreground mb-6" />
+            <h3 className="text-xl font-medium mb-2">No results found</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">
+              {searchQuery.text || searchQuery.filters.tags.length > 0
+                ? "We couldn't find any notes matching your search criteria"
+                : "Start searching to find your notes"}
+            </p>
+            
+            {(searchQuery.text || searchQuery.filters.tags.length > 0) && (
+              <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg max-w-md">
+                <p className="font-medium mb-2">Try these suggestions:</p>
+                <ul className="text-left space-y-1">
+                  <li>• Check your spelling</li>
+                  <li>• Use different keywords</li>
+                  <li>• Remove some filters</li>
+                  <li>• Search for broader terms</li>
+                  <li>• Enable semantic search for better matches</li>
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  const displayResults = searchResults.slice(0, maxResults);
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Enhancement indicator */}
-      {isEnhancing && searchQuery.text.trim() && (
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardContent className="flex items-center gap-2 py-3">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-            <span className="text-sm text-blue-700">Enhancing results with semantic search...</span>
+      {isEnhancing && hasSemanticSearch && (
+        <Card className="border-search-accent/50 bg-search-accent/5 animate-pulse-glow">
+          <CardContent className="flex items-center gap-3 py-4">
+            <div className="animate-spin">
+              <RefreshCw className="h-4 w-4 text-search-accent" />
+            </div>
+            <span className="text-sm font-medium text-search-accent">
+              Enhancing results with semantic analysis...
+            </span>
           </CardContent>
         </Card>
       )}
-      
-      {displayResults.map((result) => (
-        <SearchResultCard
-          key={result.id}
-          result={result}
-          onSelect={onNoteSelect}
+
+      {/* Search Metrics */}
+      <SearchMetrics
+        totalResults={totalResults}
+        totalNotes={100} // This should come from a notes count query
+        notesWithEmbeddings={semanticResults}
+        searchType={searchType}
+        hasSemanticFallback={hasSemanticSearch && semanticResults === 0}
+      />
+
+      {/* Error state for semantic search failures */}
+      {hasSemanticSearch && semanticResults === 0 && searchResults.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50/50">
+          <CardContent className="flex items-center gap-3 py-4">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <span className="text-sm text-orange-700">
+              Semantic search unavailable - showing fuzzy results only
+            </span>
+            <Button variant="outline" size="sm" className="ml-auto">
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Grouped Results */}
+      <div className="space-y-4">
+        <SearchResultsGroup
+          title="Exact Matches"
+          tier="exact"
+          results={groupedResults.exact}
+          isOpen={true}
+          onNoteSelect={onNoteSelect}
           highlightContent={highlightContent}
           searchText={searchQuery.text}
         />
-      ))}
-      
-      {searchResults.length > maxResults && (
+
+        <SearchResultsGroup
+          title="Highly Related"
+          tier="high"
+          results={groupedResults.high}
+          isOpen={groupedResults.exact.length === 0}
+          onNoteSelect={onNoteSelect}
+          highlightContent={highlightContent}
+          searchText={searchQuery.text}
+        />
+
+        <SearchResultsGroup
+          title="Related Content"
+          tier="medium"
+          results={groupedResults.medium}
+          isOpen={false}
+          onNoteSelect={onNoteSelect}
+          highlightContent={highlightContent}
+          searchText={searchQuery.text}
+        />
+
+        <SearchResultsGroup
+          title="Loosely Related"
+          tier="related"
+          results={groupedResults.related}
+          isOpen={false}
+          maxVisible={3}
+          onNoteSelect={onNoteSelect}
+          highlightContent={highlightContent}
+          searchText={searchQuery.text}
+        />
+      </div>
+
+      {/* Results summary */}
+      {totalResults > maxResults && (
         <Card>
           <CardContent className="text-center py-4">
             <p className="text-sm text-muted-foreground">
-              Showing {maxResults} of {searchResults.length} results
+              Showing top {maxResults} of {totalResults} results
             </p>
           </CardContent>
         </Card>
       )}
     </div>
-  );
-}
-
-interface SearchResultCardProps {
-  result: SearchResult;
-  onSelect?: (noteId: string) => void;
-  highlightContent: (content: string, searchText: string) => string;
-  searchText: string;
-}
-
-function SearchResultCard({ result, onSelect, highlightContent, searchText }: SearchResultCardProps) {
-  const handleClick = () => {
-    if (onSelect) {
-      onSelect(result.id);
-    } else {
-      // Navigate to note (could be handled by router)
-      window.location.href = `/notes/${result.slug}`;
-    }
-  };
-
-  // Prepare content preview
-  const contentPreview = result.content?.length > 200 
-    ? result.content.substring(0, 200) + '...'
-    : result.content || '';
-
-  // Highlight matched content
-  const highlightedTitle = highlightContent(result.title, searchText);
-  const highlightedPreview = highlightContent(contentPreview, searchText);
-
-  return (
-    <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={handleClick}>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle 
-              className="text-base mb-1 flex items-center gap-2"
-              dangerouslySetInnerHTML={{ __html: highlightedTitle }}
-            />
-            <CardDescription className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {formatDistanceToNow(new Date(result.updated_at), { addSuffix: true })}
-              </span>
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {result.category_type}
-              </span>
-              {result.pinned && (
-                <span className="flex items-center gap-1 text-yellow-600">
-                  <Pin className="h-3 w-3" />
-                  Pinned
-                </span>
-              )}
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Similarity score badge */}
-            {result.similarity_score && (
-              <Badge variant="secondary" className="text-xs">
-                {Math.round(result.similarity_score * 100)}% similar
-              </Badge>
-            )}
-            
-            {/* Search type badge */}
-            <Badge 
-              variant={
-                result.search_type === 'semantic' ? 'default' :
-                result.search_type === 'hybrid' ? 'destructive' :
-                'outline'
-              } 
-              className="text-xs"
-            >
-              {result.search_type === 'semantic' ? '🧠' :
-               result.search_type === 'hybrid' ? '⚡' :
-               '🔍'} {result.search_type}
-            </Badge>
-            
-            {/* Result tier badge */}
-            {result.tier && (
-              <Badge 
-                variant={
-                  result.tier === 'exact' ? 'default' :
-                  result.tier === 'high' ? 'secondary' :
-                  'outline'
-                } 
-                className="text-xs"
-              >
-                {result.tier}
-              </Badge>
-            )}
-            
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <ExternalLink className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        {/* Content Preview */}
-        {contentPreview && (
-          <div 
-            className="text-sm text-muted-foreground mb-3 line-clamp-2"
-            dangerouslySetInnerHTML={{ __html: highlightedPreview }}
-          />
-        )}
-        
-        {/* Tags */}
-        {result.tags && result.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {result.tags.map((tag) => (
-              <Badge 
-                key={tag} 
-                variant={result.matchedTags.includes(tag) ? "default" : "secondary"}
-                className="text-xs gap-1"
-              >
-                <TagIcon className="h-2 w-2" />
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-        
-        {/* Matched tags highlight */}
-        {result.matchedTags.length > 0 && (
-          <div className="text-xs text-muted-foreground">
-            Matched tags: {result.matchedTags.join(', ')}
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
