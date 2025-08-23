@@ -12,7 +12,8 @@ import {
   Clock,
   TrendingUp,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Menu
 } from 'lucide-react';
 
 import {
@@ -25,6 +26,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -80,8 +82,9 @@ export function AppSidebar({ selectedNotes = [] }: AppSidebarProps) {
     <Sidebar className={isCollapsed ? "w-14" : "w-80"} collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
+          <SidebarTrigger className="h-6 w-6 p-0 text-sidebar-foreground hover:bg-sidebar-accent" />
           {!isCollapsed && (
-            <div className="flex-1">
+            <div className="flex-1 ml-3">
               <UserMenu />
             </div>
           )}
