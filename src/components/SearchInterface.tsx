@@ -7,6 +7,8 @@ import { EnhancedSearch } from '@/components/EnhancedSearch';
 import { SearchResults } from '@/components/SearchResults';
 import { TagFilterSidebar } from '@/components/TagFilterSidebar';
 import { AdvancedSearchBuilder } from '@/components/AdvancedSearchBuilder';
+import LinkSearchInterface from '@/components/LinkSearchInterface';
+import LinkSearchResults from '@/components/LinkSearchResults';
 import { useEnhancedSearch } from '@/hooks/useEnhancedSearch';
 import { 
   Search, 
@@ -15,17 +17,21 @@ import {
   Settings, 
   LayoutGrid,
   List,
-  ArrowUpDown
+  ArrowUpDown,
+  Network,
+  Zap
 } from 'lucide-react';
 
 interface SearchInterfaceProps {
+  currentNoteId?: string;
   onNoteSelect?: (noteId: string) => void;
 }
 
-export function SearchInterface({ onNoteSelect }: SearchInterfaceProps) {
+export function SearchInterface({ currentNoteId, onNoteSelect }: SearchInterfaceProps) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'title'>('relevance');
+  const [searchMode, setSearchMode] = useState<'standard' | 'links'>('standard');
   
   const { searchResults, searchQuery } = useEnhancedSearch();
 
@@ -53,8 +59,48 @@ export function SearchInterface({ onNoteSelect }: SearchInterfaceProps) {
         <Card>
           <CardContent className="p-4">
             <div className="space-y-4">
+              {/* Search Mode Toggle */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={searchMode === 'standard' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSearchMode('standard')}
+                  className="gap-2"
+                >
+                  <Search className="h-4 w-4" />
+                  Standard Search
+                </Button>
+                <Button
+                  variant={searchMode === 'links' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSearchMode('links')}
+                  className="gap-2"
+                >
+                  <Network className="h-4 w-4" />
+                  Link-Enhanced Search
+                </Button>
+                {currentNoteId && (
+                  <Badge variant="secondary" className="text-xs">
+                    Current note context available
+                  </Badge>
+                )}
+              </div>
+              
               {/* Search Input */}
-              <EnhancedSearch onNoteSelect={onNoteSelect} />
+              {searchMode === 'standard' ? (
+                <EnhancedSearch onNoteSelect={onNoteSelect} />
+              ) : (
+                <div className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      placeholder="Search with links... (# for tags)"
+                      className="w-full pl-10 pr-4 py-2 border rounded-md"
+                    />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Link-enhanced search coming soon...</p>
+                </div>
+              )}
               
               {/* Search Controls */}
               <div className="flex items-center justify-between">
@@ -181,11 +227,18 @@ export function SearchInterface({ onNoteSelect }: SearchInterfaceProps) {
 
         {/* Search Results */}
         <div className={viewMode === 'grid' ? 'grid grid-cols-2 gap-4' : 'space-y-4'}>
-          <SearchResults 
-            onNoteSelect={onNoteSelect}
-            maxResults={viewMode === 'grid' ? 20 : 50}
-            showEmptyState={hasActiveSearch}
-          />
+          {searchMode === 'standard' ? (
+            <SearchResults 
+              onNoteSelect={onNoteSelect}
+              maxResults={viewMode === 'grid' ? 20 : 50}
+              showEmptyState={hasActiveSearch}
+            />
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <Network className="h-8 w-8 mx-auto mb-2" />
+              <p>Link-enhanced search results coming soon...</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
