@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useBracketLinking } from '@/hooks/useBracketLinking';
 import { BracketSuggestions } from '@/components/BracketSuggestions';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +36,7 @@ export function BracketLinkingTextarea({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [cursorPosition, setCursorPosition] = useState(0);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
@@ -72,13 +74,13 @@ export function BracketLinkingTextarea({
         const currentLine = lines.length - 1;
         const charInLine = lines[lines.length - 1].length;
         
-        // Rough estimation of position (can be improved with more precise calculation)
-        const lineHeight = 20;
-        const charWidth = 8;
+        // Responsive positioning
+        const lineHeight = isMobile ? 24 : 20;
+        const charWidth = isMobile ? 10 : 8;
         
         setDropdownPosition({
-          top: rect.top + (currentLine * lineHeight) + lineHeight,
-          left: rect.left + (charInLine * charWidth)
+          top: rect.top + (currentLine * lineHeight) + lineHeight + (isMobile ? 10 : 0),
+          left: isMobile ? Math.max(10, Math.min(rect.left, window.innerWidth - 300)) : rect.left + (charInLine * charWidth)
         });
       }
     }
@@ -198,10 +200,11 @@ export function BracketLinkingTextarea({
         onKeyUp={handleSelectionChange}
         onClick={handleSelectionChange}
         placeholder={placeholder}
-        className={`${className} ${isEnabled ? 'bracket-linking-enabled' : ''}`}
+        className={`${className} ${isEnabled ? 'bracket-linking-enabled' : ''} ${isMobile ? 'text-base' : ''}`}
         disabled={disabled}
         style={{
-          fontFamily: 'monospace', // Makes bracket links more visible
+          fontFamily: isMobile ? 'system-ui' : 'monospace',
+          minHeight: isMobile ? '120px' : '80px',
         }}
       />
       
