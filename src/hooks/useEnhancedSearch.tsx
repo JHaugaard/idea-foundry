@@ -64,8 +64,15 @@ export function useEnhancedSearch() {
   const [recentSearches, setRecentSearches] = useState<SearchQuery[]>([]);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [hybridResults, setHybridResults] = useState<SearchResult[]>([]);
+  const [searchMetrics, setSearchMetrics] = useState<{
+    totalNotes: number;
+    notesWithEmbeddings: number;
+    searchTime: number;
+    searchType: 'fuzzy' | 'semantic' | 'hybrid';
+    hasSemanticFallback: boolean;
+  } | null>(null);
 
-  // Get all notes for searching
+  // Get all notes for searching with improved caching
   const { data: allNotes = [], isLoading: notesLoading } = useQuery({
     queryKey: ['search-notes', user?.id],
     queryFn: async () => {
@@ -73,7 +80,7 @@ export function useEnhancedSearch() {
       
       const { data, error } = await supabase
         .from('notes')
-        .select('id, title, content, tags, created_at, updated_at, slug, category_type, pinned')
+        .select('id, title, content, tags, created_at, updated_at, slug, category_type, pinned, semantic_enabled')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
@@ -81,7 +88,8 @@ export function useEnhancedSearch() {
       return data || [];
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   // Get saved searches
@@ -321,11 +329,22 @@ export function useEnhancedSearch() {
     return tieredResults;
   }, []);
 
-  // Enhanced hybrid search with progressive loading
+  // Enhanced hybrid search with progressive loading and performance tracking
   const performHybridSearch = useCallback(async (query: SearchQuery) => {
+    const startTime = performance.now();
+    
     if (!query.text.trim()) {
       const fuzzyResults = performFuzzySearch(query);
       setHybridResults(fuzzyResults);
+      
+      // Set metrics for empty query
+      setSearchMetrics({
+        totalNotes: allNotes.length,
+        notesWithEmbeddings: allNotes.filter(n => n.semantic_enabled).length,
+        searchTime: performance.now() - startTime,
+        searchType: 'fuzzy',
+        hasSemanticFallback: false
+      });
       return;
     }
 
@@ -335,19 +354,39 @@ export function useEnhancedSearch() {
     const fuzzyResults = performFuzzySearch(query);
     setHybridResults(fuzzyResults);
 
+    let finalSearchType: 'fuzzy' | 'semantic' | 'hybrid' = 'fuzzy';
+    let hasSemanticFallback = false;
+
     try {
       // Perform semantic search in parallel
       const semanticResults = await performSemanticSearch(query);
       
-      // Merge results with weighted scoring
-      const mergedResults = mergeHybridResults(fuzzyResults, semanticResults);
-      setHybridResults(mergedResults);
+      if (semanticResults.length > 0) {
+        // Merge results with weighted scoring
+        const mergedResults = mergeHybridResults(fuzzyResults, semanticResults);
+        setHybridResults(mergedResults);
+        finalSearchType = mergedResults.some(r => r.search_type === 'hybrid') ? 'hybrid' : 'semantic';
+      } else {
+        hasSemanticFallback = true;
+      }
     } catch (error) {
       console.warn('Hybrid search enhancement failed:', error);
+      hasSemanticFallback = true;
     } finally {
+      const searchTime = performance.now() - startTime;
+      
+      // Update search metrics
+      setSearchMetrics({
+        totalNotes: allNotes.length,
+        notesWithEmbeddings: allNotes.filter(n => n.semantic_enabled).length,
+        searchTime,
+        searchType: finalSearchType,
+        hasSemanticFallback
+      });
+
       setIsEnhancing(false);
     }
-  }, [performFuzzySearch, performSemanticSearch, mergeHybridResults]);
+  }, [performFuzzySearch, performSemanticSearch, mergeHybridResults, allNotes]);
 
   // Trigger hybrid search when query changes
   React.useEffect(() => {
@@ -452,5 +491,6 @@ export function useEnhancedSearch() {
     getTagSuggestions,
     highlightContent,
     isSaving: saveSearchMutation.isPending,
+    searchMetrics,
   };
 }
