@@ -8,6 +8,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useEnhancedSearch } from '@/hooks/useEnhancedSearch';
+import { useDebounced } from '@/hooks/useDebounced';
+import { QueryProcessor } from '@/utils/queryProcessor';
+import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { 
   Search, 
   Hash, 
@@ -18,7 +21,9 @@ import {
   Plus,
   Calendar,
   Tag as TagIcon,
-  Minus
+  Minus,
+  Zap,
+  Brain
 } from 'lucide-react';
 
 interface EnhancedSearchProps {
@@ -41,13 +46,36 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([]);
+  
+  // Debounce input for suggestions
+  const debouncedQuery = useDebounced(inputValue, 300);
 
   // Update input value when search query changes
   useEffect(() => {
     setInputValue(searchQuery.text);
   }, [searchQuery.text]);
+
+  // Process query intelligently
+  useEffect(() => {
+    if (debouncedQuery.trim()) {
+      const processedQuery = QueryProcessor.processQuery(debouncedQuery);
+      
+      updateSearchQuery({
+        text: processedQuery.processedQuery,
+        filters: {
+          ...processedQuery.filters,
+          dateRange: processedQuery.temporal ? {
+            start: processedQuery.temporal.start!,
+            end: processedQuery.temporal.end!
+          } : searchQuery.filters.dateRange
+        },
+        mode: processedQuery.semantic ? 'combined' : searchQuery.mode
+      });
+    }
+  }, [debouncedQuery]);
 
   // Handle input change and show suggestions
   const handleInputChange = (value: string) => {
@@ -60,16 +88,20 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
     if (isTagMode) {
       setTagSuggestions(getTagSuggestions(searchText));
       setShowSuggestions(true);
+      setShowSearchSuggestions(false);
     } else {
       setShowSuggestions(false);
+      setShowSearchSuggestions(value.length > 2);
     }
 
-    // Update search query
-    updateSearchQuery({
-      ...searchQuery,
-      text: value,
-      mode: isTagMode ? 'tags' : 'combined'
-    });
+    // For immediate tag searches, update directly
+    if (isTagMode) {
+      updateSearchQuery({
+        ...searchQuery,
+        text: value,
+        mode: 'tags'
+      });
+    }
   };
 
   // Handle tag selection
@@ -104,10 +136,31 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
     });
   };
 
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion: string) => {
+    setInputValue(suggestion);
+    const processedQuery = QueryProcessor.processQuery(suggestion);
+    
+    updateSearchQuery({
+      text: processedQuery.processedQuery,
+      filters: {
+        ...processedQuery.filters,
+        dateRange: processedQuery.temporal ? {
+          start: processedQuery.temporal.start!,
+          end: processedQuery.temporal.end!
+        } : undefined
+      },
+      mode: processedQuery.semantic ? 'combined' : 'text'
+    });
+    
+    setShowSearchSuggestions(false);
+  };
+
   // Load saved search
   const loadSavedSearch = (savedSearch: any) => {
     updateSearchQuery(savedSearch.query);
     setShowSuggestions(false);
+    setShowSearchSuggestions(false);
   };
 
   if (compact) {
@@ -138,13 +191,21 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={inputRef}
-            placeholder="Search notes... (start with # for tags)"
+            placeholder="Search notes... Try 'find similar to project' or 'notes from last week'"
             value={inputValue}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => setShowSuggestions(!!inputValue.startsWith('#'))}
-            className="pl-10 pr-20"
+            onFocus={() => {
+              setShowSuggestions(!!inputValue.startsWith('#'));
+              setShowSearchSuggestions(inputValue.length > 2 && !inputValue.startsWith('#'));
+            }}
+            className="pl-10 pr-24"
           />
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+            {(debouncedQuery.includes('similar') || debouncedQuery.includes('like')) && (
+              <div title="Semantic search active">
+                <Brain className="h-3 w-3 text-primary" />
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -155,6 +216,14 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
             </Button>
           </div>
         </div>
+
+        {/* Intelligent Search Suggestions */}
+        <SearchSuggestions
+          query={inputValue}
+          onSuggestionSelect={handleSuggestionSelect}
+          onClose={() => setShowSearchSuggestions(false)}
+          isVisible={showSearchSuggestions && !inputValue.startsWith('#')}
+        />
 
         {/* Tag Suggestions */}
         {showSuggestions && tagSuggestions.length > 0 && (
