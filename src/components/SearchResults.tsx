@@ -27,7 +27,8 @@ export function SearchResults({
     isLoading, 
     isEnhancing, 
     searchQuery, 
-    highlightContent 
+    highlightContent,
+    searchMetrics
   } = useEnhancedSearch();
 
   // Group results by tier
@@ -131,13 +132,16 @@ export function SearchResults({
       )}
 
       {/* Search Metrics */}
-      <SearchMetrics
-        totalResults={totalResults}
-        totalNotes={100} // This should come from a notes count query
-        notesWithEmbeddings={semanticResults}
-        searchType={searchType}
-        hasSemanticFallback={hasSemanticSearch && semanticResults === 0}
-      />
+      {searchMetrics && (
+        <SearchMetrics
+          totalResults={totalResults}
+          searchTime={searchMetrics.searchTime}
+          totalNotes={searchMetrics.totalNotes}
+          notesWithEmbeddings={searchMetrics.notesWithEmbeddings}
+          searchType={searchMetrics.searchType}
+          hasSemanticFallback={searchMetrics.hasSemanticFallback}
+        />
+      )}
 
       {/* Error state for semantic search failures */}
       {hasSemanticSearch && semanticResults === 0 && searchResults.length > 0 && (
