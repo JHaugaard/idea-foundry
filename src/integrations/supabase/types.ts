@@ -80,6 +80,48 @@ export type Database = {
         }
         Relationships: []
       }
+      embedding_generation_status: {
+        Row: {
+          batch_id: string
+          completed_at: string | null
+          cost_estimate_usd: number | null
+          error_message: string | null
+          failed_notes: number
+          id: string
+          processed_notes: number
+          started_at: string
+          status: string
+          total_notes: number
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string
+          completed_at?: string | null
+          cost_estimate_usd?: number | null
+          error_message?: string | null
+          failed_notes?: number
+          id?: string
+          processed_notes?: number
+          started_at?: string
+          status?: string
+          total_notes?: number
+          user_id: string
+        }
+        Update: {
+          batch_id?: string
+          completed_at?: string | null
+          cost_estimate_usd?: number | null
+          error_message?: string | null
+          failed_notes?: number
+          id?: string
+          processed_notes?: number
+          started_at?: string
+          status?: string
+          total_notes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       files: {
         Row: {
           created_at: string
@@ -318,6 +360,39 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      search_analytics: {
+        Row: {
+          clicked_result_id: string | null
+          created_at: string
+          id: string
+          query_text: string
+          query_type: string
+          results_count: number
+          search_duration_ms: number
+          user_id: string
+        }
+        Insert: {
+          clicked_result_id?: string | null
+          created_at?: string
+          id?: string
+          query_text: string
+          query_type: string
+          results_count?: number
+          search_duration_ms?: number
+          user_id: string
+        }
+        Update: {
+          clicked_result_id?: string | null
+          created_at?: string
+          id?: string
+          query_text?: string
+          query_type?: string
+          results_count?: number
+          search_duration_ms?: number
           user_id?: string
         }
         Relationships: []
@@ -606,6 +681,16 @@ export type Database = {
         Args: { "": string } | { "": unknown } | { "": unknown }
         Returns: unknown
       }
+      log_search_analytics: {
+        Args: {
+          p_clicked_result_id?: string
+          p_query_text: string
+          p_query_type: string
+          p_results_count: number
+          p_search_duration_ms: number
+        }
+        Returns: undefined
+      }
       match_notes: {
         Args: {
           match_count?: number
@@ -615,8 +700,6 @@ export type Database = {
         Returns: {
           note_id: string
           similarity: number
-          slug: string
-          title: string
         }[]
       }
       sparsevec_out: {
