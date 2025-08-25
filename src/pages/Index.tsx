@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,11 +11,24 @@ import FileManager from '@/components/FileManager';
 import { supabase } from '@/integrations/supabase/client';
 import { slugify } from '@/lib/slug';
 import { useToast } from '@/hooks/use-toast';
+import { SlideOverProvider, useSlideOver } from '@/contexts/SlideOverContext';
+import { CaptureSlideOver } from '@/components/slideovers/CaptureSlideOver';
+import { ReviewSearchSlideOver } from '@/components/slideovers/ReviewSearchSlideOver';
+import { useSlideOverShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { Plus, Search } from 'lucide-react';
 
-const Index = () => {
+const IndexContent = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { openCapture, openSearch, close, isOpen } = useSlideOver();
+  
+  // Refs for focus restoration
+  const captureButtonRef = useRef<HTMLButtonElement>(null);
+  const searchButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Keyboard shortcuts for slide-overs
+  useSlideOverShortcuts(openCapture, openSearch, close, isOpen);
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
@@ -127,11 +140,47 @@ const Index = () => {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col">
+          {/* Header with slide-over triggers */}
+          <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex h-14 items-center justify-between px-6">
+              <div className="flex items-center gap-4">
+                <h1 className="text-lg font-semibold">Idea Foundry</h1>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  ref={captureButtonRef}
+                  variant="outline"
+                  size="sm"
+                  onClick={openCapture}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Capture
+                </Button>
+                
+                <Button
+                  ref={searchButtonRef}
+                  variant="outline"
+                  size="sm"
+                  onClick={openSearch}
+                  className="gap-2"
+                >
+                  <Search className="h-4 w-4" />
+                  Search
+                </Button>
+              </div>
+            </div>
+          </header>
+          
           <main className="flex-1 p-6">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
-                <h1 className="text-4xl font-bold mb-2">Idea Foundry</h1>
-                <p className="text-xl text-muted-foreground">Capture, organize, and discover ideas</p>
+                <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
+                <p className="text-lg text-muted-foreground">
+                  Capture ideas quickly or use <kbd className="px-1 py-0.5 bg-muted rounded text-xs">C</kbd> for capture, 
+                  <kbd className="px-1 py-0.5 bg-muted rounded text-xs ml-1">/</kbd> for search
+                </p>
               </div>
 
               <div className="space-y-6">
@@ -145,8 +194,20 @@ const Index = () => {
             </div>
           </main>
         </div>
+        
+        {/* Slide-over panels */}
+        <CaptureSlideOver triggerRef={captureButtonRef} />
+        <ReviewSearchSlideOver triggerRef={searchButtonRef} />
       </div>
     </SidebarProvider>
+  );
+};
+
+const Index = () => {
+  return (
+    <SlideOverProvider>
+      <IndexContent />
+    </SlideOverProvider>
   );
 };
 
