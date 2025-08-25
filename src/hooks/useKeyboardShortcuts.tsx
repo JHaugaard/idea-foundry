@@ -7,7 +7,7 @@ interface KeyboardShortcut {
   shiftKey?: boolean;
   altKey?: boolean;
   preventDefault?: boolean;
-  action: (event?: KeyboardEvent) => void;
+  action: () => void;
 }
 
 export const useKeyboardShortcuts = (shortcuts: KeyboardShortcut[]) => {
@@ -26,7 +26,7 @@ export const useKeyboardShortcuts = (shortcuts: KeyboardShortcut[]) => {
       if (matchingShortcut.preventDefault !== false) {
         event.preventDefault();
       }
-      matchingShortcut.action(event);
+      matchingShortcut.action();
     }
   }, [shortcuts]);
 
@@ -60,39 +60,6 @@ export const useGlobalShortcuts = (
       key: 'b',
       ctrlKey: true,
       action: onBacklinkPanel,
-    },
-  ]);
-};
-
-export const useSlideOverShortcuts = (
-  onOpenCapture: () => void,
-  onOpenSearch: () => void,
-  onClose: () => void,
-  isOpen: boolean
-) => {
-  useKeyboardShortcuts([
-    {
-      key: 'c',
-      action: onOpenCapture,
-      preventDefault: true,
-    },
-    {
-      key: '/',
-      action: (event) => {
-        // Prevent default browser find behavior
-        event?.preventDefault();
-        onOpenSearch();
-      },
-      preventDefault: true,
-    },
-    {
-      key: 'Escape',
-      action: () => {
-        if (isOpen) {
-          onClose();
-        }
-      },
-      preventDefault: false, // Let other ESC handlers work too
     },
   ]);
 };
