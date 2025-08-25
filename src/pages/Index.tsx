@@ -127,10 +127,6 @@ const Index = () => {
         <AppSidebar />
         
         <div className="flex-1 flex flex-col">
-          <header className="h-12 flex items-center border-b border-border px-4">
-            <SidebarTrigger />
-          </header>
-          
           <main className="flex-1 p-6">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">

@@ -83,8 +83,9 @@ export function AppSidebar({ selectedNotes = [] }: AppSidebarProps) {
     <Sidebar className={isCollapsed ? "w-14" : "w-80"} collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
+          <SidebarTrigger className="h-8 w-8 p-1 text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border rounded-md" />
           {!isCollapsed && (
-            <div className="flex-1">
+            <div className="flex-1 ml-3">
               <UserMenu />
             </div>
           )}
