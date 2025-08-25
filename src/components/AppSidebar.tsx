@@ -48,6 +48,7 @@ import TokenManagement from '@/components/TokenManagement';
 const navigationItems = [
   { title: "Link Explorer", url: "/links", icon: Network },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Tag Manager", url: "/tags", icon: Tag },
 ];
 
 interface AppSidebarProps {
@@ -62,7 +63,7 @@ export function AppSidebar({ selectedNotes = [] }: AppSidebarProps) {
   
   const [showBatchOperations, setShowBatchOperations] = useState(false);
   const [showAutomationPanel, setShowAutomationPanel] = useState(false);
-  const [isTagSectionOpen, setIsTagSectionOpen] = useState(true);
+  const [isTagSectionOpen, setIsTagSectionOpen] = useState(false);
 
   const isCollapsed = state === "collapsed";
   const totalNotes = tagStats?.reduce((sum, stat) => sum + stat.count, 0) || 0;
@@ -82,9 +83,8 @@ export function AppSidebar({ selectedNotes = [] }: AppSidebarProps) {
     <Sidebar className={isCollapsed ? "w-14" : "w-80"} collapsible="icon">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center justify-between">
-          <SidebarTrigger className="h-8 w-8 p-1 text-sidebar-foreground hover:bg-sidebar-accent border border-sidebar-border rounded-md" />
           {!isCollapsed && (
-            <div className="flex-1 ml-3">
+            <div className="flex-1">
               <UserMenu />
             </div>
           )}
@@ -133,17 +133,6 @@ export function AppSidebar({ selectedNotes = [] }: AppSidebarProps) {
             <CollapsibleContent className="space-y-4 px-2">
               {!isCollapsed && (
                 <>
-                  {/* Tag Library Link */}
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton asChild>
-                        <NavLink to="/tags" className={getNavCls}>
-                          <Tag className="h-4 w-4" />
-                          <span>Tag Library</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
 
                   {/* Tag Automation Tabs */}
                   <Tabs defaultValue="automation" className="w-full">
