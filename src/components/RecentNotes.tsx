@@ -106,7 +106,7 @@ const RecentNotes = () => {
             </div>
           ) : (
             <ScrollArea className="h-[300px]">
-              <div className="space-y-3">
+              <div className="space-y-1">
                  {notes.map((note) => (
                   <div 
                     key={note.id}
