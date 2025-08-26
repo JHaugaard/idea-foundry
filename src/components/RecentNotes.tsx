@@ -107,42 +107,20 @@ const RecentNotes = () => {
           ) : (
             <ScrollArea className="h-[300px]">
               <div className="space-y-3">
-                {notes.map((note) => (
-                  <Card key={note.id} className="p-3 hover:bg-muted/50 transition-colors group">
-                    <div className="space-y-3">
-                      <div 
-                        className="cursor-pointer"
-                        onClick={() => handleNoteClick(note)}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-medium text-sm leading-tight line-clamp-2">
-                            {note.title}
-                          </h4>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
-                          </div>
-                        </div>
-                        {note.content && (
-                          <LinkifiedContent 
-                            content={note.content}
-                            sourceNoteId={note.id}
-                            className="text-xs text-muted-foreground line-clamp-2 mt-2"
-                          />
-                        )}
-                      </div>
-                      
-                      {/* Inline Tag Editor */}
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <InlineTagEditor
-                          noteId={note.id}
-                          tags={note.tags || []}
-                          onTagsUpdate={(newTags) => handleTagsUpdate(note.id, newTags)}
-                          compact={true}
-                        />
-                      </div>
+                 {notes.map((note) => (
+                  <div 
+                    key={note.id}
+                    className="flex items-center justify-between gap-2 p-2 hover:bg-muted/50 transition-colors cursor-pointer rounded-md"
+                    onClick={() => handleNoteClick(note)}
+                  >
+                    <h4 className="font-medium text-sm leading-tight line-clamp-1 flex-1">
+                      {note.title}
+                    </h4>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
+                      <Clock className="h-3 w-3" />
+                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
                     </div>
-                  </Card>
+                  </div>
                 ))}
               </div>
             </ScrollArea>
