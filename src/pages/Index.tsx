@@ -25,7 +25,7 @@ const Index = () => {
   useEffect(() => {
     const seed = async () => {
       if (loading || !user) return;
-      const seededKey = 'loremNotesSeeded_v1';
+      const seededKey = 'loremNotesSeeded_v2';
       if (localStorage.getItem(seededKey) === '1') return;
 
       const notes = [

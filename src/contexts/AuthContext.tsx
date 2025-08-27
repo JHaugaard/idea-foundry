@@ -32,8 +32,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (BYPASS_AUTH) {
       // Mock user for development
+      const DEV_USER_UUID = '00000000-0000-0000-0000-000000000001';
       setUser({
-        id: 'dev-user-id',
+        id: DEV_USER_UUID,
         email: 'dev@example.com',
         user_metadata: { display_name: 'Development User' },
         app_metadata: {},
@@ -42,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } as User);
       setSession({
         user: {
-          id: 'dev-user-id',
+          id: DEV_USER_UUID,
           email: 'dev@example.com',
           user_metadata: { display_name: 'Development User' },
           app_metadata: {},
