@@ -33,17 +33,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { User as UserIcon, LogOut, Pencil, Trash2 } from "lucide-react";
+import { User as UserIcon, LogOut, Pencil, Trash2, Key } from "lucide-react";
 
 const UserMenu: React.FC = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const [displayName, setDisplayName] = useState<string>(
     (user?.user_metadata as any)?.display_name || ""
   );
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   const handleSignOut = async () => {
@@ -68,6 +73,51 @@ const UserMenu: React.FC = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "New passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+      
+      toast({
+        title: "Password updated",
+        description: "Your password has been changed successfully.",
+      });
+      setPasswordDialogOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e: any) {
+      toast({
+        title: "Password change failed",
+        description: e?.message || "Could not change password",
+        variant: "destructive",
+      });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -109,6 +159,9 @@ const UserMenu: React.FC = () => {
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => setOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" /> Edit Profile
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setPasswordDialogOpen(true)}>
+            <Key className="mr-2 h-4 w-4" /> Change Password
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" /> Sign Out
@@ -172,6 +225,46 @@ const UserMenu: React.FC = () => {
                 Save
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>Update your account password.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleChangePassword} disabled={changingPassword}>
+              {changingPassword ? "Updating..." : "Update Password"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

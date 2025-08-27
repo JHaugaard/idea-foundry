@@ -22,11 +22,38 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // TEMPORARY: Bypass auth during development
+  const BYPASS_AUTH = true;
+  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!BYPASS_AUTH);
 
   useEffect(() => {
+    if (BYPASS_AUTH) {
+      // Mock user for development
+      setUser({
+        id: 'dev-user-id',
+        email: 'dev@example.com',
+        user_metadata: { display_name: 'Development User' },
+        app_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString()
+      } as User);
+      setSession({
+        user: {
+          id: 'dev-user-id',
+          email: 'dev@example.com',
+          user_metadata: { display_name: 'Development User' },
+          app_metadata: {},
+          aud: 'authenticated',
+          created_at: new Date().toISOString()
+        } as User
+      } as Session);
+      setLoading(false);
+      return;
+    }
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -44,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [BYPASS_AUTH]);
 
   const signUp = async (email: string, password: string, displayName?: string) => {
     const redirectUrl = `${window.location.origin}/`;

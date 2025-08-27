@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const { signIn, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -41,6 +43,38 @@ const Auth = () => {
     }
 
     setIsLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResetting(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      toast({
+        title: "Password reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Password reset sent",
+        description: "Check your email for password reset instructions.",
+      });
+    }
+
+    setIsResetting(false);
   };
 
   return (
@@ -85,8 +119,18 @@ const Auth = () => {
             </Button>
           </form>
           
-          <div className="mt-4 text-center text-sm text-muted-foreground">
-            New to Idea Foundry? Contact an administrator for an invitation.
+          <div className="mt-4 space-y-2">
+            <Button
+              variant="link"
+              className="w-full text-sm text-muted-foreground"
+              onClick={handleForgotPassword}
+              disabled={isResetting}
+            >
+              {isResetting ? "Sending..." : "Forgot your password?"}
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              New to Idea Foundry? Contact an administrator for an invitation.
+            </div>
           </div>
         </CardContent>
       </Card>
