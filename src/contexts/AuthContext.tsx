@@ -23,7 +23,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // TEMPORARY: Bypass auth during development
-  const BYPASS_AUTH = true;
+  const BYPASS_AUTH = false;
   
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
