@@ -131,7 +131,7 @@ const Index = () => {
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
                 <h1 className="text-4xl font-bold mb-2">Idea Foundry</h1>
-                <p className="text-xl text-muted-foreground">Capture, organize, and discover ideas</p>
+                <p className="text-xl text-muted-foreground">Capture and organize notes - discover ideas</p>
               </div>
 
               <div className="space-y-6">
