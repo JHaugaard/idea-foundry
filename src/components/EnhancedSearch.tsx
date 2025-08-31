@@ -8,9 +8,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useEnhancedSearch } from '@/hooks/useEnhancedSearch';
+import { useEmbeddingProvider } from '@/hooks/useEmbeddingProvider';
 import { useDebounced } from '@/hooks/useDebounced';
 import { QueryProcessor } from '@/utils/queryProcessor';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
+import { EmbeddingStatusIndicator } from '@/components/EmbeddingStatusIndicator';
 import { 
   Search, 
   Hash, 
@@ -41,7 +43,10 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
     recentSearches,
     getTagSuggestions,
     highlightContent,
+    executeSearch,
   } = useEnhancedSearch();
+
+  const embeddingProvider = useEmbeddingProvider();
 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -74,8 +79,11 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
         },
         mode: processedQuery.semantic ? 'combined' : searchQuery.mode
       });
+      
+      // Execute search with embedding provider
+      executeSearch(embeddingProvider);
     }
-  }, [debouncedQuery]);
+  }, [debouncedQuery, updateSearchQuery, executeSearch, embeddingProvider]);
 
   // Handle input change and show suggestions
   const handleInputChange = (value: string) => {
@@ -201,6 +209,7 @@ export function EnhancedSearch({ onNoteSelect, compact = false }: EnhancedSearch
             className="pl-10 pr-24"
           />
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+            <EmbeddingStatusIndicator />
             {(debouncedQuery.includes('similar') || debouncedQuery.includes('like')) && (
               <div title="Semantic search active">
                 <Brain className="h-3 w-3 text-primary" />

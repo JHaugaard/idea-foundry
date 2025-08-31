@@ -170,23 +170,33 @@ export function useEnhancedSearch() {
   }, [allNotes, fuse]);
 
   // Semantic search function
-  const performSemanticSearch = useCallback(async (query: SearchQuery): Promise<SearchResult[]> => {
+  const performSemanticSearch = useCallback(async (query: SearchQuery, embeddingProvider?: any): Promise<SearchResult[]> => {
     if (!query.text.trim() || !user?.id) return [];
 
     try {
-      // Generate embedding for the search query using the note-embed edge function
-      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('note-embed', {
-        body: { text: query.text }
-      });
+      let queryEmbedding: number[];
+      
+      // Generate embedding for the query using the embedding provider
+      if (embeddingProvider) {
+        const embeddingResult = await embeddingProvider.generateEmbedding(query.text);
+        queryEmbedding = embeddingResult.embedding;
+      } else {
+        // Fallback to OpenAI edge function
+        const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke('query-embed', {
+          body: { query: query.text }
+        });
 
-      if (embeddingError || !embeddingData?.embedding) {
-        console.warn('Failed to generate embedding for search:', embeddingError);
-        return [];
+        if (embeddingError || !embeddingData?.embedding) {
+          console.warn('Failed to generate embedding for search:', embeddingError);
+          return [];
+        }
+
+        queryEmbedding = embeddingData.embedding;
       }
 
       // Call match_notes function with the embedding
       const { data: semanticResults, error: searchError } = await supabase.rpc('match_notes', {
-        query_embedding: embeddingData.embedding,
+        query_embedding: `[${queryEmbedding.join(',')}]`,
         match_threshold: 0.3, // Lower threshold for broader results
         match_count: 20
       });
@@ -330,7 +340,7 @@ export function useEnhancedSearch() {
   }, []);
 
   // Enhanced hybrid search with progressive loading and performance tracking
-  const performHybridSearch = useCallback(async (query: SearchQuery) => {
+  const performHybridSearch = useCallback(async (query: SearchQuery, embeddingProvider?: any) => {
     const startTime = performance.now();
     
     if (!query.text.trim()) {
@@ -359,7 +369,7 @@ export function useEnhancedSearch() {
 
     try {
       // Perform semantic search in parallel
-      const semanticResults = await performSemanticSearch(query);
+      const semanticResults = await performSemanticSearch(query, embeddingProvider);
       
       if (semanticResults.length > 0) {
         // Merge results with weighted scoring
@@ -388,10 +398,14 @@ export function useEnhancedSearch() {
     }
   }, [performFuzzySearch, performSemanticSearch, mergeHybridResults, allNotes]);
 
+  const executeSearch = useCallback(async (embeddingProvider?: any) => {
+    await performHybridSearch(searchQuery, embeddingProvider);
+  }, [searchQuery, performHybridSearch]);
+
   // Trigger hybrid search when query changes
   React.useEffect(() => {
-    performHybridSearch(searchQuery);
-  }, [searchQuery, performHybridSearch]);
+    executeSearch();
+  }, [executeSearch]);
 
   // Save search mutation
   const saveSearchMutation = useMutation({
@@ -492,5 +506,6 @@ export function useEnhancedSearch() {
     highlightContent,
     isSaving: saveSearchMutation.isPending,
     searchMetrics,
+    executeSearch,
   };
 }

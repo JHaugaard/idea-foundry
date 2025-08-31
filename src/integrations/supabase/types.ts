@@ -23,6 +23,7 @@ export type Database = {
           confidence_threshold: number
           created_at: string
           duplicate_detection_enabled: boolean
+          embedding_source: string
           id: string
           learn_from_acceptances: boolean
           learn_from_rejections: boolean
@@ -44,6 +45,7 @@ export type Database = {
           confidence_threshold?: number
           created_at?: string
           duplicate_detection_enabled?: boolean
+          embedding_source?: string
           id?: string
           learn_from_acceptances?: boolean
           learn_from_rejections?: boolean
@@ -65,6 +67,7 @@ export type Database = {
           confidence_threshold?: number
           created_at?: string
           duplicate_detection_enabled?: boolean
+          embedding_source?: string
           id?: string
           learn_from_acceptances?: boolean
           learn_from_rejections?: boolean
