@@ -12,6 +12,7 @@ import { useAITagPreferences } from '@/hooks/useAITagPreferences';
 import { useState } from 'react';
 import { X, Plus, Settings, Brain, Globe, Sparkles, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { EmbeddingSettings } from '@/components/EmbeddingSettings';
 
 export default function AITagSettings() {
   const { preferences, updatePreferences, isUpdating, addToBlacklist, removeFromBlacklist } = useAITagPreferences();
@@ -338,6 +339,8 @@ export default function AITagSettings() {
           )}
         </CardContent>
       </Card>
+
+      <EmbeddingSettings />
     </div>
   );
 }

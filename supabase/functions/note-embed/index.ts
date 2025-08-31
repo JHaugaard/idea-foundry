@@ -92,6 +92,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "text-embedding-3-small",
         input: text,
+        dimensions: 384,
       }),
     });
 
