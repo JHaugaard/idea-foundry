@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import TagInput from '@/components/TagInput';
 
 interface Note {
@@ -463,15 +463,15 @@ export default function NoteView() {
                 <CardTitle className="text-lg">Metadata</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <div>
-                    <div>Created {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}</div>
-                    {note.updated_at !== note.created_at && (
-                      <div>Updated {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}</div>
-                    )}
-                  </div>
-                </div>
+                 <div className="flex items-center gap-2">
+                   <Calendar className="h-4 w-4" />
+                   <div>
+                     <div>Created {format(new Date(note.created_at), 'MM/dd/yyyy')}</div>
+                     {note.updated_at !== note.created_at && (
+                       <div>Updated {format(new Date(note.updated_at), 'MM/dd/yyyy')}</div>
+                     )}
+                   </div>
+                 </div>
 
                 {note.tags && note.tags.length > 0 && (
                   <div>

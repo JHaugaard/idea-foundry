@@ -7,13 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { FileText, Clock, MoreHorizontal, Tags, Users, Edit3 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import BacklinkReviewDialog from '@/components/BacklinkReviewDialog';
-import InlineTagEditor from '@/components/InlineTagEditor';
+import { useLinkNavigation } from '@/hooks/useLinkNavigation';
 import TagManagementDialog from '@/components/TagManagementDialog';
 import BatchTagOperations from '@/components/BatchTagOperations';
-import LinkifiedContent from '@/components/LinkifiedContent';
 
 interface Note {
   id: string;
@@ -22,21 +20,20 @@ interface Note {
   tags: string[] | null;
   created_at: string;
   updated_at: string;
+  slug?: string;
 }
 
 const RecentNotes = () => {
-  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
   const [batchOperationsOpen, setBatchOperationsOpen] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
   const { notes, isLoading, invalidateNotes } = useNotes();
+  const { navigateToNote } = useLinkNavigation();
 
   const handleNoteClick = (note: Note) => {
-    setSelectedNote(note);
-    setDialogOpen(true);
+    navigateToNote(note.id, note.slug || null);
   };
 
   const handleTagsUpdate = (noteId: string, newTags: string[]) => {
@@ -67,7 +64,7 @@ const RecentNotes = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              <CardTitle>Review</CardTitle>
+              <CardTitle>Recent Captures</CardTitle>
             </div>
             
             <DropdownMenu>
@@ -94,7 +91,7 @@ const RecentNotes = () => {
             </DropdownMenu>
           </div>
           <CardDescription>
-            Your latest captured thoughts
+            Your most recent captures
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -107,7 +104,7 @@ const RecentNotes = () => {
           ) : (
             <ScrollArea className="h-[300px]">
               <div className="space-y-1">
-                 {notes.map((note) => (
+                 {notes.slice(0, 10).map((note) => (
                   <div 
                     key={note.id}
                     className="flex items-center justify-between gap-2 p-2 hover:bg-muted/50 transition-colors cursor-pointer rounded-md"
@@ -118,7 +115,7 @@ const RecentNotes = () => {
                     </h4>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
                       <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(note.created_at), { addSuffix: true })}
+                      {format(new Date(note.created_at), 'MM/dd/yyyy')}
                     </div>
                   </div>
                 ))}
@@ -127,20 +124,6 @@ const RecentNotes = () => {
           )}
         </CardContent>
       </Card>
-
-      <BacklinkReviewDialog
-        open={dialogOpen}
-        onOpenChange={(v) => {
-          setDialogOpen(v);
-          if (!v) setSelectedNote(null);
-        }}
-        note={selectedNote ? { id: selectedNote.id, title: selectedNote.title, slug: (selectedNote as any).slug ?? null, content: selectedNote.content } : null}
-        onCompleted={() => {
-          setDialogOpen(false);
-          setSelectedNote(null);
-          invalidateNotes();
-        }}
-      />
 
       <TagManagementDialog
         open={tagManagementOpen}

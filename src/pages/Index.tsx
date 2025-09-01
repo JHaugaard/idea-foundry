@@ -1,9 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ReviewQueueList } from '@/components/ReviewQueueList';
 import RecentNotes from '@/components/RecentNotes';
 import QuickCapture from '@/components/QuickCapture';
+import { EnhancedSearch } from '@/components/EnhancedSearch';
 
 export default function Index() {
   return (
@@ -11,8 +11,8 @@ export default function Index() {
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Capture</h1>
-          <p className="text-muted-foreground">Quickly capture notes, ideas, and files</p>
+          <h1 className="text-3xl font-bold">Idea Foundry</h1>
+          <p className="text-muted-foreground">Capture and organize notes - discover ideas</p>
         </div>
 
         {/* Quick Capture - Primary Feature */}
@@ -20,23 +20,16 @@ export default function Index() {
 
         {/* Secondary Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Review Queue */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Review Queue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ReviewQueueList />
-            </CardContent>
-          </Card>
+          {/* Recent Captures */}
+          <RecentNotes />
 
-          {/* Recent Notes */}
+          {/* Search */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Notes</CardTitle>
+              <CardTitle>Search</CardTitle>
             </CardHeader>
             <CardContent>
-              <RecentNotes />
+              <EnhancedSearch compact={true} />
             </CardContent>
           </Card>
         </div>
