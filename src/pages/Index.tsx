@@ -3,18 +3,39 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useNotes } from '@/hooks/useNotes';
 import { useToast } from '@/hooks/use-toast';
 import { ReviewQueueList } from '@/components/ReviewQueueList';
-import { RecentNotes } from '@/components/RecentNotes';
+import RecentNotes from '@/components/RecentNotes';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function Index() {
-  const { createNote } = useNotes();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleCreateNote = async () => {
+    if (!user) return;
+    
     try {
-      const newNote = await createNote();
+      const { data, error } = await supabase
+        .from('notes')
+        .insert({
+          user_id: user.id,
+          title: 'New Note',
+          content: '',
+          tags: [],
+          review_status: 'not_reviewed'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Invalidate notes queries to refresh the lists
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      
       toast({
         title: "Note created",
         description: "Your new note is ready for editing"
