@@ -21,7 +21,7 @@ export const useNotes = () => {
   const queryClient = useQueryClient();
 
   const notesQuery = useQuery({
-    queryKey: ['notes', 'not_reviewed', user?.id],
+    queryKey: ['notes', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
@@ -29,7 +29,6 @@ export const useNotes = () => {
         .from('notes')
         .select('*')
         .eq('user_id', user.id)
-        .eq('review_status', 'not_reviewed')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -39,7 +38,7 @@ export const useNotes = () => {
   });
 
   const invalidateNotes = () => {
-    queryClient.invalidateQueries({ queryKey: ['notes', 'not_reviewed', user?.id] });
+    queryClient.invalidateQueries({ queryKey: ['notes', user?.id] });
   };
 
   const createNote = async () => {

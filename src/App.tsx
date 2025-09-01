@@ -41,7 +41,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/" element={
               <ProtectedRoute>
-                <SidebarProvider>
+                <SidebarProvider defaultOpen={false}>
                   <AppSidebar />
                   <SidebarInset>
                     <Index />
@@ -51,7 +51,7 @@ function App() {
             } />
             <Route path="/notes/:slug" element={
               <ProtectedRoute>
-                <SidebarProvider>
+                <SidebarProvider defaultOpen={false}>
                   <AppSidebar />
                   <SidebarInset>
                     <NoteView />
@@ -61,7 +61,7 @@ function App() {
             } />
             <Route path="/analytics" element={
               <ProtectedRoute>
-                <SidebarProvider>
+                <SidebarProvider defaultOpen={false}>
                   <AppSidebar />
                   <SidebarInset>
                     <Analytics />
@@ -71,7 +71,7 @@ function App() {
             } />
             <Route path="/tags" element={
               <ProtectedRoute>
-                <SidebarProvider>
+                <SidebarProvider defaultOpen={false}>
                   <AppSidebar />
                   <SidebarInset>
                     <TagLibrary />
@@ -81,7 +81,7 @@ function App() {
             } />
             <Route path="/links" element={
               <ProtectedRoute>
-                <SidebarProvider>
+                <SidebarProvider defaultOpen={false}>
                   <AppSidebar />
                   <SidebarInset>
                     <LinkExplorer />
