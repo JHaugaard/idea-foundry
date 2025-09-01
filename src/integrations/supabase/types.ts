@@ -300,9 +300,11 @@ export type Database = {
           created_at: string
           id: string
           pinned: boolean
+          processing_flags: Json
           review_status: Database["public"]["Enums"]["review_status"]
           semantic_enabled: boolean
           slug: string | null
+          summary: string | null
           tags: string[] | null
           title: string
           updated_at: string
@@ -315,9 +317,11 @@ export type Database = {
           created_at?: string
           id?: string
           pinned?: boolean
+          processing_flags?: Json
           review_status?: Database["public"]["Enums"]["review_status"]
           semantic_enabled?: boolean
           slug?: string | null
+          summary?: string | null
           tags?: string[] | null
           title: string
           updated_at?: string
@@ -330,9 +334,11 @@ export type Database = {
           created_at?: string
           id?: string
           pinned?: boolean
+          processing_flags?: Json
           review_status?: Database["public"]["Enums"]["review_status"]
           semantic_enabled?: boolean
           slug?: string | null
+          summary?: string | null
           tags?: string[] | null
           title?: string
           updated_at?: string

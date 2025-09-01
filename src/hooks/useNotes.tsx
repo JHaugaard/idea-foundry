@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,8 +8,12 @@ interface Note {
   title: string;
   content: string | null;
   tags: string[] | null;
+  summary: string | null;
+  processing_flags: Record<string, any>;
+  review_status: 'not_reviewed' | 'reviewed';
   created_at: string;
   updated_at: string;
+  slug?: string;
 }
 
 export const useNotes = () => {
