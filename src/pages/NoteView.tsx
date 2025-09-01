@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { TagInput } from '@/components/TagInput';
+import TagInput from '@/components/TagInput';
 
 interface Note {
   id: string;
@@ -22,7 +22,7 @@ interface Note {
   content: string | null;
   tags: string[] | null;
   summary: string | null;
-  processing_flags: Record<string, any>;
+  processing_flags: any;
   review_status: 'not_reviewed' | 'reviewed';
   created_at: string;
   updated_at: string;
@@ -30,6 +30,7 @@ interface Note {
 }
 
 interface ProcessingFlags {
+  [key: string]: any;
   title_generated?: boolean;
   summary_generated?: boolean;
   tags_generated?: boolean;
@@ -126,7 +127,7 @@ export default function NoteView() {
           content: content.trim() || note.content,
           tags: tags.length > 0 ? tags : note.tags,
           summary: summary.trim() || note.summary,
-          processing_flags: processingFlags,
+          processing_flags: processingFlags as any,
           review_status: 'reviewed',
           updated_at: new Date().toISOString()
         })
@@ -284,6 +285,8 @@ export default function NoteView() {
                   tags={tags}
                   onTagsChange={setTags}
                   placeholder="Add tags..."
+                  noteContent={content}
+                  noteTitle={title}
                 />
               </CardContent>
             </Card>

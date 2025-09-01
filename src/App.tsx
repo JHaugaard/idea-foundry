@@ -1,53 +1,100 @@
-import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from '@/components/ui/toaster'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AuthContext } from '@/contexts/AuthContext'
+import { AppSidebar } from '@/components/AppSidebar'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
+import Auth from '@/pages/Auth'
+import Signup from '@/pages/Signup'
+import Index from '@/pages/Index'
+import NoteView from '@/pages/NoteView'
+import Analytics from '@/pages/Analytics'
+import TagLibrary from '@/pages/TagLibrary'
+import LinkExplorer from '@/pages/LinkExplorer'
+import NotFound from '@/pages/NotFound'
 
-import { AuthContextProvider } from "@/contexts/AuthContext";
-import { Toaster } from "@/components/ui/toaster";
-import { EnhancedErrorBoundary } from "@/components/EnhancedErrorBoundary";
+const queryClient = new QueryClient()
 
-import Auth from "@/pages/Auth";
-import Signup from "@/pages/Signup";
-import Index from "@/pages/Index";
-import NotFound from "@/pages/NotFound";
-import Analytics from "@/pages/Analytics";
-import LinkExplorer from "@/pages/LinkExplorer";
-import TagLibrary from "@/pages/TagLibrary";
-import AppSidebar from "@/components/AppSidebar";
-import NoteView from "@/pages/NoteView";
+interface ProtectedRouteProps {
+  children: React.ReactNode
+}
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000, // 1 minute
-    },
-  },
-});
+function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { user } = React.useContext(AuthContext);
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContextProvider>
-        <BrowserRouter>
-          <div className="min-h-screen bg-background">
-            <Toaster />
-            <EnhancedErrorBoundary>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/notes/:slug" element={<NoteView />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/link-explorer" element={<LinkExplorer />} />
-                <Route path="/tag-library" element={<TagLibrary />} />
-                <Route path="/" element={<Index />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </EnhancedErrorBoundary>
-          </div>
-        </BrowserRouter>
-      </AuthContextProvider>
+      <AuthContext>
+        <Router>
+          <Routes>
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <Index />
+                  </SidebarInset>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="/notes/:slug" element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <NoteView />
+                  </SidebarInset>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <Analytics />
+                  </SidebarInset>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="/tags" element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <TagLibrary />
+                  </SidebarInset>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="/links" element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <LinkExplorer />
+                  </SidebarInset>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+        <Toaster />
+      </AuthContext>
     </QueryClientProvider>
-  );
+  )
 }
 
-export default App;
+export default App
