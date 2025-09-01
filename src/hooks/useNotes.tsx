@@ -42,10 +42,34 @@ export const useNotes = () => {
     queryClient.invalidateQueries({ queryKey: ['notes', 'not_reviewed', user?.id] });
   };
 
+  const createNote = async () => {
+    if (!user) throw new Error('User not authenticated');
+    
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        user_id: user.id,
+        title: 'New Note',
+        content: '',
+        tags: [],
+        review_status: 'not_reviewed'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    // Invalidate queries to refresh the lists
+    invalidateNotes();
+    
+    return data;
+  };
+
   return {
     notes: notesQuery.data || [],
     isLoading: notesQuery.isLoading,
     error: notesQuery.error,
     invalidateNotes,
+    createNote,
   };
 };

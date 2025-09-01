@@ -1,8 +1,9 @@
+
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthContext } from '@/contexts/AuthContext'
+import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { AppSidebar } from '@/components/AppSidebar'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import Auth from '@/pages/Auth'
@@ -21,7 +22,7 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user } = React.useContext(AuthContext);
+  const { user } = useAuth();
 
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -33,7 +34,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthContext>
+      <AuthProvider>
         <Router>
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -92,7 +93,7 @@ function App() {
           </Routes>
         </Router>
         <Toaster />
-      </AuthContext>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }
