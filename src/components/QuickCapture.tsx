@@ -26,7 +26,6 @@ type FormData = z.infer<typeof formSchema>;
 
 const QuickCapture = () => {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{name: string, id: string}>>([]);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -91,10 +90,11 @@ const QuickCapture = () => {
       }
 
       try {
-        await uploadFile(file);
-        // Also create a corresponding note entry so it appears in Review (Not Reviewed)
+        const uploadResult = await uploadFile(file);
+        // Create note with file attachment
         const fileTitle = file.name;
         const fileSlug = slugify(`${file.name}-${Date.now()}`);
+        
         await supabase
           .from('notes')
           .insert({
@@ -102,17 +102,27 @@ const QuickCapture = () => {
             title: fileTitle,
             content: null,
             slug: fileSlug,
+            file_attachments: [{
+              name: file.name,
+              type: file.type,
+              path: uploadResult?.storage_path,
+              size: file.size
+            }],
+            review_status: 'not_reviewed'
           });
-        setUploadedFiles(prev => [...prev, { name: file.name, id: Date.now().toString() }]);
+
+        // Refresh notes after successful upload
+        queryClient.invalidateQueries({ queryKey: ['notes', user.id] });
+
+        toast({
+          title: "File uploaded!",
+          description: `${file.name} has been captured for review.`,
+        });
       } catch (error: any) {
         // Error is already handled in the hook
       }
     }
-  }, [user, uploadFile, toast]);
-
-  const removeUploadedFile = useCallback((id: string) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== id));
-  }, []);
+  }, [user, uploadFile, toast, queryClient]);
 
   const generateTemporaryTitle = (content: string): string => {
     // Use first five words of content as placeholder title
@@ -181,10 +191,9 @@ const QuickCapture = () => {
 
       // Clear form 
       reset();
-      setUploadedFiles([]);
 
       // Refresh the notes list to show the new note
-      queryClient.invalidateQueries({ queryKey: ['notes', 'not_reviewed', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['notes', user.id] });
 
       toast({
         title: "Note captured!",
@@ -279,7 +288,6 @@ const QuickCapture = () => {
                   className="w-full max-w-xs"
                   onClick={() => {
                     reset();
-                    setUploadedFiles([]);
                   }}
                 >
                   <X className="h-4 w-4 mr-2" />
@@ -287,31 +295,6 @@ const QuickCapture = () => {
                 </Button>
               </div>
             </div>
-
-            {/* Show uploaded files */}
-            {uploadedFiles.length > 0 && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-2">Uploaded Files:</p>
-                <div className="space-y-1">
-                  {uploadedFiles.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between text-sm bg-muted p-2 rounded">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        <span>{file.name}</span>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeUploadedFile(file.id)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </form>
         </Form>
       </CardContent>

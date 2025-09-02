@@ -7,6 +7,7 @@ import { ArrowLeft, Calendar, Tag, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import LinkifiedContent from '@/components/LinkifiedContent';
 import { BacklinkPanel } from '@/components/BacklinkPanel';
+import { FileAttachmentRenderer } from '@/components/FileAttachmentRenderer';
 
 interface Note {
   id: string;
@@ -16,6 +17,12 @@ interface Note {
   created_at: string;
   updated_at: string;
   slug?: string;
+  file_attachments?: Array<{
+    name: string;
+    type: string;
+    path?: string;
+    size?: number;
+  }>;
 }
 
 interface NoteDetailViewProps {
@@ -102,6 +109,13 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
               ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <p>This note has no content.</p>
+                </div>
+              )}
+              
+              {/* File Attachments */}
+              {note.file_attachments && note.file_attachments.length > 0 && (
+                <div className="mt-6 pt-6 border-t">
+                  <FileAttachmentRenderer attachments={note.file_attachments} />
                 </div>
               )}
             </CardContent>
