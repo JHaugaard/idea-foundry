@@ -29,6 +29,7 @@ export const useNotes = () => {
         .from('notes')
         .select('*')
         .eq('user_id', user.id)
+        .eq('review_status', 'not_reviewed')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
