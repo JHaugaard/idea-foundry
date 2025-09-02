@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, FileText, Hash } from 'lucide-react';
+import { Search, Hash } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLinkNavigation } from '@/hooks/useLinkNavigation';
 
@@ -23,16 +23,16 @@ interface BasicSearchHomeProps {
 }
 
 export const BasicSearchHome: React.FC<BasicSearchHomeProps> = ({ onNoteSelect }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [query, setQuery] = useState('');
   const { user } = useAuth();
   const { navigateToNote } = useLinkNavigation();
 
   const searchResults = useQuery({
-    queryKey: ['search', searchQuery, user?.id],
+    queryKey: ['search', query, user?.id],
     queryFn: async () => {
-      if (!user || !searchQuery.trim()) return [];
+      if (!user || !query.trim()) return [];
 
-      const trimmedQuery = searchQuery.trim().toLowerCase();
+      const trimmedQuery = query.trim().toLowerCase();
       
       // Check if searching by tag (starts with #)
       if (trimmedQuery.startsWith('#')) {
@@ -63,7 +63,7 @@ export const BasicSearchHome: React.FC<BasicSearchHomeProps> = ({ onNoteSelect }
         return data || [];
       }
     },
-    enabled: !!user && !!searchQuery.trim(),
+    enabled: !!user && !!query.trim(),
   });
 
   const handleNoteClick = (note: SearchResult) => {
@@ -81,14 +81,14 @@ export const BasicSearchHome: React.FC<BasicSearchHomeProps> = ({ onNoteSelect }
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           placeholder="Search notes or use #tag..."
           className="pl-10"
         />
       </div>
 
-      {searchQuery.trim() && (
+      {query.trim() && (
         <div className="space-y-2">
           {searchResults.isLoading && (
             <div className="text-center text-muted-foreground py-4">
@@ -96,9 +96,9 @@ export const BasicSearchHome: React.FC<BasicSearchHomeProps> = ({ onNoteSelect }
             </div>
           )}
           
-          {results.length === 0 && !searchResults.isLoading && searchQuery.trim() && (
+          {results.length === 0 && !searchResults.isLoading && query.trim() && (
             <div className="text-center text-muted-foreground py-4">
-              No notes found for "{searchQuery}"
+              No notes found for "{query}"
             </div>
           )}
 
