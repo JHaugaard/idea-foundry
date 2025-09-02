@@ -33,7 +33,7 @@ const RecentNotes = () => {
   const { navigateToNote } = useLinkNavigation();
 
   const handleNoteClick = (note: Note) => {
-    navigateToNote(note.id, note.slug || null);
+    navigateToNote(note.slug || undefined, note.id, note.title);
   };
 
   const handleTagsUpdate = (noteId: string, newTags: string[]) => {
@@ -104,7 +104,7 @@ const RecentNotes = () => {
           ) : (
             <ScrollArea className="h-[300px]">
               <div className="space-y-1">
-                 {notes.slice(0, 10).map((note) => (
+                 {notes.slice(0, 8).map((note) => (
                   <div 
                     key={note.id}
                     className="flex items-center justify-between gap-2 p-2 hover:bg-muted/50 transition-colors cursor-pointer rounded-md"

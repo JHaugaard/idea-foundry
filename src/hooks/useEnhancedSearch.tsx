@@ -402,10 +402,7 @@ export function useEnhancedSearch() {
     await performHybridSearch(searchQuery, embeddingProvider);
   }, [searchQuery, performHybridSearch]);
 
-  // Trigger hybrid search when query changes
-  React.useEffect(() => {
-    executeSearch();
-  }, [executeSearch]);
+  // Note: Search execution is handled by components when needed, not automatically triggered
 
   // Save search mutation
   const saveSearchMutation = useMutation({
