@@ -91,7 +91,7 @@ const RecentNotes = () => {
             </DropdownMenu>
           </div>
           <CardDescription>
-            Your most recent captures
+            Recent captures for Review
           </CardDescription>
         </CardHeader>
         <CardContent>
