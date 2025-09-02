@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import TagInput from '@/components/TagInput';
+import { FileAttachmentRenderer } from '@/components/FileAttachmentRenderer';
 
 interface Note {
   id: string;
@@ -27,6 +28,12 @@ interface Note {
   created_at: string;
   updated_at: string;
   slug?: string;
+  file_attachments?: Array<{
+    name: string;
+    type: string;
+    path?: string;
+    size?: number;
+  }>;
 }
 
 interface ProcessingFlags {
@@ -75,7 +82,15 @@ export default function NoteView() {
       if (error) throw error;
       if (!data) throw new Error('Note not found');
       
-      return data as Note;
+      return {
+        ...data,
+        file_attachments: Array.isArray(data.file_attachments) ? data.file_attachments as Array<{
+          name: string;
+          type: string;
+          path?: string;
+          size?: number;
+        }> : undefined
+      } as Note;
     },
     enabled: !!user && !!slug,
   });
@@ -305,6 +320,18 @@ export default function NoteView() {
                 />
               </CardContent>
             </Card>
+
+            {/* File Attachments */}
+            {note.file_attachments && note.file_attachments.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">File Attachments</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FileAttachmentRenderer attachments={note.file_attachments} />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between pt-4">

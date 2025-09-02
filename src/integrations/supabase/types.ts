@@ -298,6 +298,7 @@ export type Database = {
           category_type: Database["public"]["Enums"]["category_type"]
           content: string | null
           created_at: string
+          file_attachments: Json | null
           id: string
           pinned: boolean
           processing_flags: Json
@@ -315,6 +316,7 @@ export type Database = {
           category_type?: Database["public"]["Enums"]["category_type"]
           content?: string | null
           created_at?: string
+          file_attachments?: Json | null
           id?: string
           pinned?: boolean
           processing_flags?: Json
@@ -332,6 +334,7 @@ export type Database = {
           category_type?: Database["public"]["Enums"]["category_type"]
           content?: string | null
           created_at?: string
+          file_attachments?: Json | null
           id?: string
           pinned?: boolean
           processing_flags?: Json
