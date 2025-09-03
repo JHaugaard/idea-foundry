@@ -76,6 +76,8 @@ const QuickCapture = () => {
       'image/jpeg',
       'image/gif',
       'image/webp',
+      'image/tiff',
+      'image/tif',
       'text/plain'
     ];
 
