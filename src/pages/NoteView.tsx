@@ -16,6 +16,7 @@ import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon } from 'lucide-rea
 import { format } from 'date-fns';
 import TagInput from '@/components/TagInput';
 import { FileAttachmentRenderer } from '@/components/FileAttachmentRenderer';
+import { AttachmentInlineViewer } from '@/components/AttachmentInlineViewer';
 
 interface Note {
   id: string;
@@ -281,12 +282,25 @@ export default function NoteView() {
                 <CardTitle className="text-lg">Content</CardTitle>
               </CardHeader>
               <CardContent>
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Enter note content..."
-                  className="min-h-[300px] resize-y"
-                />
+                {/* Show inline attachment viewer if no content but has attachments */}
+                {!content && note.file_attachments && note.file_attachments.length > 0 ? (
+                  <div className="space-y-4">
+                    <AttachmentInlineViewer attachments={note.file_attachments} />
+                    <Textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Add text content or description..."
+                      className="min-h-[150px] resize-y"
+                    />
+                  </div>
+                ) : (
+                  <Textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="Enter note content..."
+                    className="min-h-[300px] resize-y"
+                  />
+                )}
               </CardContent>
             </Card>
 

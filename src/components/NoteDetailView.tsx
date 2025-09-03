@@ -8,6 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import LinkifiedContent from '@/components/LinkifiedContent';
 import { BacklinkPanel } from '@/components/BacklinkPanel';
 import { FileAttachmentRenderer } from '@/components/FileAttachmentRenderer';
+import { AttachmentInlineViewer } from '@/components/AttachmentInlineViewer';
 
 interface Note {
   id: string;
@@ -106,14 +107,16 @@ export const NoteDetailView: React.FC<NoteDetailViewProps> = ({
                     className="prose prose-sm max-w-none leading-relaxed whitespace-pre-wrap"
                   />
                 </ScrollArea>
+              ) : note.file_attachments && note.file_attachments.length > 0 ? (
+                <AttachmentInlineViewer attachments={note.file_attachments} />
               ) : (
                 <div className="text-center text-muted-foreground py-8">
                   <p>This note has no content.</p>
                 </div>
               )}
               
-              {/* File Attachments */}
-              {note.file_attachments && note.file_attachments.length > 0 && (
+              {/* File Attachments - Only show if there's also content */}
+              {note.content && note.file_attachments && note.file_attachments.length > 0 && (
                 <div className="mt-6 pt-6 border-t">
                   <FileAttachmentRenderer attachments={note.file_attachments} />
                 </div>
