@@ -179,31 +179,72 @@ const SingleImageViewer: React.FC<{ path: string; alt: string }> = ({ path, alt 
 const SinglePDFViewer: React.FC<{ path: string; name: string }> = ({ path, name }) => {
   const [pdfUrl, setPdfUrl] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
 
   React.useEffect(() => {
+    let blobUrl: string | null = null;
+    
     const loadPDF = async () => {
       try {
-        const { data } = await supabase.storage
+        // Download PDF as blob to avoid cross-origin issues
+        const { data, error } = await supabase.storage
           .from('user-files')
-          .createSignedUrl(path, 3600);
+          .download(path);
         
-        if (data?.signedUrl) {
-          setPdfUrl(data.signedUrl);
+        if (error || !data) {
+          setError(true);
+          return;
         }
+
+        // Create blob URL for same-origin rendering
+        blobUrl = URL.createObjectURL(data);
+        setPdfUrl(blobUrl);
       } catch (err) {
         console.error('Failed to load PDF:', err);
+        setError(true);
       } finally {
         setLoading(false);
       }
     };
 
     loadPDF();
+
+    // Cleanup blob URL on unmount
+    return () => {
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
   }, [path]);
 
   if (loading) {
     return (
       <div className="w-full h-96 bg-muted animate-pulse rounded-lg flex items-center justify-center">
         <span className="text-sm text-muted-foreground">Loading PDF...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full h-96 bg-muted rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="h-16 w-16 mx-auto text-red-500 mb-4" />
+          <p className="text-lg font-medium">{name}</p>
+          <p className="text-sm text-muted-foreground mb-4">Failed to load PDF</p>
+          <button
+            onClick={async () => {
+              const { data } = await supabase.storage
+                .from('user-files')
+                .createSignedUrl(path, 60);
+              if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </button>
+        </div>
       </div>
     );
   }
