@@ -291,9 +291,12 @@ const TagInput: React.FC<TagInputProps> = ({
               )}
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
+          <PopoverContent 
+            className="w-full p-0 z-50 bg-popover border shadow-md" 
+            align="start"
+          >
             <Command>
-              <CommandList>
+              <CommandList className="max-h-64 overflow-auto">
                 {combinedSuggestions.length === 0 ? (
                   <CommandEmpty>
                     {isGettingContentSuggestions ? "Getting AI suggestions..." : "No suggestions found."}

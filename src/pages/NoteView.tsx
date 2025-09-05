@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,11 +12,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon, Hash, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import TagInput from '@/components/TagInput';
 import { FileAttachmentRenderer } from '@/components/FileAttachmentRenderer';
 import { AttachmentInlineViewer } from '@/components/AttachmentInlineViewer';
+import { parseHashtags, mergeTags } from '@/lib/tags';
 
 interface Note {
   id: string;
@@ -96,6 +97,14 @@ export default function NoteView() {
     enabled: !!user && !!slug,
   });
 
+  // Detect inline hashtags from title and content
+  const inlineTags = useMemo(() => {
+    const titleTags = parseHashtags(title);
+    const contentTags = parseHashtags(content);
+    const allInlineTags = mergeTags(titleTags, contentTags);
+    return allInlineTags.filter(tag => !tags.includes(tag));
+  }, [title, content, tags]);
+
   // Initialize form state when note loads
   useEffect(() => {
     if (noteQuery.data) {
@@ -117,6 +126,10 @@ export default function NoteView() {
     }
   }, [noteQuery.data]);
 
+  const addInlineTags = () => {
+    setTags(prevTags => mergeTags(prevTags, inlineTags));
+  };
+
   // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -135,13 +148,16 @@ export default function NoteView() {
         processingFlags.embeddings_source = processingChoices.embeddingsSource;
       }
 
+      // Merge inline hashtags with existing tags on save
+      const finalTags = mergeTags(tags, parseHashtags(`${title}\n${content}`));
+
       // Update note
       const { error } = await supabase
         .from('notes')
         .update({
           title: title.trim() || note.title,
           content: content.trim() || note.content,
-          tags: tags.length > 0 ? tags : note.tags,
+          tags: finalTags,
           summary: summary.trim() || note.summary,
           processing_flags: processingFlags as any,
           review_status: 'reviewed',
@@ -309,14 +325,44 @@ export default function NoteView() {
               <CardHeader>
                 <CardTitle className="text-lg">Tags</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <TagInput
                   tags={tags}
                   onTagsChange={setTags}
-                  placeholder="Add tags..."
+                  placeholder="Add tags or use #hashtags in content..."
                   noteContent={content}
                   noteTitle={title}
                 />
+                
+                {/* Inline hashtags preview */}
+                {inlineTags.length > 0 && (
+                  <div className="p-3 bg-muted/50 rounded-md border">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Hash className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">
+                          Hashtags detected in content
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addInlineTags}
+                        className="h-7 px-2 text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add all
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {inlineTags.map(tag => (
+                        <Badge key={tag} variant="outline" className="text-xs h-6 px-2">
+                          #{tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
