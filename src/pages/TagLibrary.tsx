@@ -40,7 +40,7 @@ const TagLibrary = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { toast } = useToast();
-  const { tagStats, isStatsLoading, mergeTags, replaceTag } = useTags();
+  const { tagStats, isStatsLoading, mergeTags, replaceTag, deleteTags } = useTags();
   
   // State management
   const [searchQuery, setSearchQuery] = useState('');
@@ -245,13 +245,25 @@ const TagLibrary = () => {
 
   // Bulk operations
   const handleBulkDelete = async () => {
-    // TODO: Implement bulk delete
-    toast({
-      title: "Bulk operations",
-      description: "Bulk delete will be implemented in a future update.",
-    });
-    setSelectedTags(new Set());
-    setConfirmAction(null);
+    if (selectedTags.size === 0) return;
+
+    try {
+      await deleteTags.mutateAsync(Array.from(selectedTags));
+
+      toast({
+        title: "Tags deleted",
+        description: `Successfully deleted ${selectedTags.size} tag${selectedTags.size !== 1 ? 's' : ''}.`,
+      });
+      
+      setSelectedTags(new Set());
+      setConfirmAction(null);
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete tags",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBulkMerge = async (targetTag: string) => {
