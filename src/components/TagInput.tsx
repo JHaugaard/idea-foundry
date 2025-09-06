@@ -264,128 +264,31 @@ const TagInput: React.FC<TagInputProps> = ({
         </div>
       )}
 
-      {/* Enhanced input with contextual suggestions */}
+      {/* Compact input without popover */}
       {canAddMoreTags && !disabled && (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <div className="relative">
-              <Input
-                ref={inputRef}
-                type="text"
-                placeholder={placeholder}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  setIsOpen(true);
-                }}
-                onBlur={() => {
-                  // Delay closing to allow clicks on suggestions
-                  setTimeout(() => setIsOpen(false), 150);
-                }}
-                className={cn(
-                  "pr-8",
-                  isInputInvalid && "border-destructive focus-visible:ring-destructive"
-                )}
-                disabled={disabled}
-              />
-              {isGettingContentSuggestions ? (
-                <Sparkles className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-500 animate-pulse" />
-              ) : (
-                <Tag className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-          </PopoverTrigger>
-          <PopoverContent 
-            className="w-full p-0 z-50 bg-background border shadow-lg" 
-            align="start"
-            sideOffset={4}
-          >
-            <Command>
-              <CommandList className="max-h-64 overflow-auto">
-                {combinedSuggestions.length === 0 ? (
-                  <CommandEmpty>
-                    {isGettingContentSuggestions ? "Getting AI suggestions..." : "No suggestions found."}
-                  </CommandEmpty>
-                ) : (
-                  <>
-                    {/* AI Suggestions */}
-                    {combinedSuggestions.filter(s => s.type === 'ai').length > 0 && (
-                      <CommandGroup heading="AI Suggestions">
-                        {combinedSuggestions.filter(s => s.type === 'ai').map((suggestion, index) => (
-                          <CommandItem
-                            key={`ai-${suggestion.tag}`}
-                            onSelect={() => addTag(suggestion.tag)}
-                            className={cn(
-                              "cursor-pointer flex items-center justify-between",
-                              selectedIndex === combinedSuggestions.indexOf(suggestion) && "bg-accent"
-                            )}
-                          >
-                            <div className="flex items-center">
-                              {getTypeIcon(suggestion.type)}
-                              <span className="ml-2">{suggestion.tag}</span>
-                              {showConfidenceScores && suggestion.confidence && (
-                                <div className="ml-2 flex items-center">
-                                  {getConfidenceIcon(suggestion.confidence)}
-                                </div>
-                              )}
-                            </div>
-                            {suggestion.related && suggestion.related.length > 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                {suggestion.related.length} similar
-                              </div>
-                            )}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    )}
-
-                    {/* Recent Tags */}
-                    {combinedSuggestions.filter(s => s.type === 'recent').length > 0 && (
-                      <CommandGroup heading="Recently Used">
-                        {combinedSuggestions.filter(s => s.type === 'recent').map((suggestion) => (
-                          <CommandItem
-                            key={`recent-${suggestion.tag}`}
-                            onSelect={() => addTag(suggestion.tag)}
-                            className={cn(
-                              "cursor-pointer flex items-center",
-                              selectedIndex === combinedSuggestions.indexOf(suggestion) && "bg-accent"
-                            )}
-                          >
-                            {getTypeIcon(suggestion.type)}
-                            <span className="ml-2">{suggestion.tag}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    )}
-
-                    {/* Basic Suggestions */}
-                    {combinedSuggestions.filter(s => s.type === 'basic').length > 0 && (
-                      <CommandGroup heading="Suggestions">
-                        {combinedSuggestions.filter(s => s.type === 'basic').map((suggestion) => (
-                          <CommandItem
-                            key={`basic-${suggestion.tag}`}
-                            onSelect={() => addTag(suggestion.tag)}
-                            className={cn(
-                              "cursor-pointer flex items-center",
-                              selectedIndex === combinedSuggestions.indexOf(suggestion) && "bg-accent"
-                            )}
-                          >
-                            {getTypeIcon(suggestion.type)}
-                            <span className="ml-2">{suggestion.tag}</span>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    )}
-                  </>
-                )}
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        <div className="relative">
+          <Input
+            ref={inputRef}
+            type="text"
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className={cn(
+              "pr-8 text-sm h-9",
+              isInputInvalid && "border-destructive focus-visible:ring-destructive"
+            )}
+            disabled={disabled}
+          />
+          {isGettingContentSuggestions ? (
+            <Sparkles className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-purple-500 animate-pulse" />
+          ) : (
+            <Tag className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
       )}
 
-      {/* Enhanced validation feedback */}
+      {/* Compact validation feedback */}
       <div className="flex justify-between text-xs">
         <span>
           {isInputInvalid && validation?.error && (
@@ -396,7 +299,7 @@ const TagInput: React.FC<TagInputProps> = ({
           {isGettingContentSuggestions && (
             <span className="text-purple-500 flex items-center">
               <Sparkles className="h-3 w-3 mr-1 animate-pulse" />
-              Getting AI suggestions...
+              AI suggestions...
             </span>
           )}
         </span>
@@ -404,16 +307,9 @@ const TagInput: React.FC<TagInputProps> = ({
           "text-muted-foreground",
           tags.length >= maxTags && "text-destructive"
         )}>
-          {tags.length}/{maxTags} tags
+          {tags.length}/{maxTags}
         </span>
       </div>
-
-      {/* Keyboard shortcuts hint */}
-      {isOpen && (
-        <div className="text-xs text-muted-foreground">
-          Use ↑↓ to navigate, Tab/Enter to select, Esc to close
-        </div>
-      )}
     </div>
   );
 };
