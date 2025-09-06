@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import SmartTextarea from '@/components/SmartTextarea';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -303,12 +304,19 @@ export default function NoteView() {
                   {note.file_attachments && note.file_attachments.length > 0 && (
                     <AttachmentInlineViewer attachments={note.file_attachments} />
                   )}
-                  <Textarea
+                  <SmartTextarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
+                    onTagsDetected={(detectedTags) => {
+                      // Merge detected hashtags with existing tags
+                      const newTags = [...new Set([...tags, ...detectedTags])];
+                      if (newTags.length !== tags.length) {
+                        setTags(newTags);
+                      }
+                    }}
                     placeholder={note.file_attachments && note.file_attachments.length > 0 
-                      ? "Add description or additional notes..." 
-                      : "Enter note content..."
+                      ? "Add description or additional notes... (Use #tag for tags, [[note]] for links)" 
+                      : "Enter note content... (Use #tag for tags, [[note]] for links)"
                     }
                     className="min-h-[200px] resize-y"
                   />
