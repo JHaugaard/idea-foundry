@@ -273,11 +273,7 @@ const TagInput: React.FC<TagInputProps> = ({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={() => {
-                  if (combinedSuggestions.length > 0) {
-                    setIsOpen(true);
-                  }
-                }}
+                onFocus={() => setIsOpen(true)}
                 className={cn(
                   "pr-8",
                   isInputInvalid && "border-destructive focus-visible:ring-destructive"
@@ -292,8 +288,9 @@ const TagInput: React.FC<TagInputProps> = ({
             </div>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-full p-0 z-50 bg-popover border shadow-md" 
+            className="w-full p-0 z-50 bg-background border shadow-lg" 
             align="start"
+            sideOffset={4}
           >
             <Command>
               <CommandList className="max-h-64 overflow-auto">
