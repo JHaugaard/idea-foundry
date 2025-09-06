@@ -298,25 +298,21 @@ export default function NoteView() {
                 <CardTitle className="text-lg">Content</CardTitle>
               </CardHeader>
               <CardContent>
-                {/* Show inline attachment viewer if no content but has attachments */}
-                {!content && note.file_attachments && note.file_attachments.length > 0 ? (
-                  <div className="space-y-4">
+                <div className="space-y-4">
+                  {/* Always show file attachments inline when present */}
+                  {note.file_attachments && note.file_attachments.length > 0 && (
                     <AttachmentInlineViewer attachments={note.file_attachments} />
-                    <Textarea
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      placeholder="Add text content or description..."
-                      className="min-h-[150px] resize-y"
-                    />
-                  </div>
-                ) : (
+                  )}
                   <Textarea
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="Enter note content..."
-                    className="min-h-[300px] resize-y"
+                    placeholder={note.file_attachments && note.file_attachments.length > 0 
+                      ? "Add description or additional notes..." 
+                      : "Enter note content..."
+                    }
+                    className="min-h-[200px] resize-y"
                   />
-                )}
+                </div>
               </CardContent>
             </Card>
 
@@ -381,17 +377,6 @@ export default function NoteView() {
               </CardContent>
             </Card>
 
-            {/* File Attachments */}
-            {note.file_attachments && note.file_attachments.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">File Attachments</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <FileAttachmentRenderer attachments={note.file_attachments} />
-                </CardContent>
-              </Card>
-            )}
 
             {/* Action Buttons */}
             <div className="flex items-center justify-between pt-4">
