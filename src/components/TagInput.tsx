@@ -83,11 +83,14 @@ const TagInput: React.FC<TagInputProps> = ({
   const combinedSuggestions = React.useMemo(() => {
     const filtered = new Set<string>();
     const results: Array<{ tag: string; type: 'ai' | 'recent' | 'basic'; confidence?: string; related?: string[] }> = [];
+    
+    // Normalize input value by removing # prefix if present
+    const normalizedInput = inputValue.startsWith('#') ? inputValue.slice(1) : inputValue;
 
     // Add AI suggestions first (highest priority)
     aiSuggestions.forEach(suggestion => {
       if (!filtered.has(suggestion.tag) && !tags.includes(suggestion.tag) && 
-          suggestion.tag.toLowerCase().includes(inputValue.toLowerCase())) {
+          suggestion.tag.toLowerCase().includes(normalizedInput.toLowerCase())) {
         filtered.add(suggestion.tag);
         results.push({
           tag: suggestion.tag,
@@ -101,7 +104,7 @@ const TagInput: React.FC<TagInputProps> = ({
     // Add recent tags (medium priority)
     recentTags.forEach(tag => {
       if (!filtered.has(tag) && !tags.includes(tag) && 
-          tag.toLowerCase().includes(inputValue.toLowerCase())) {
+          tag.toLowerCase().includes(normalizedInput.toLowerCase())) {
         filtered.add(tag);
         results.push({ tag, type: 'recent' });
       }
@@ -110,7 +113,7 @@ const TagInput: React.FC<TagInputProps> = ({
     // Add basic suggestions (lowest priority)
     suggestions.forEach(tag => {
       if (!filtered.has(tag) && !tags.includes(tag) && 
-          tag.toLowerCase().includes(inputValue.toLowerCase())) {
+          tag.toLowerCase().includes(normalizedInput.toLowerCase())) {
         filtered.add(tag);
         results.push({ tag, type: 'basic' });
       }
@@ -121,9 +124,9 @@ const TagInput: React.FC<TagInputProps> = ({
 
   // Update suggestions visibility
   useEffect(() => {
-    setIsOpen(inputValue.length > 0 && combinedSuggestions.length > 0);
+    setIsOpen(combinedSuggestions.length > 0);
     setSelectedIndex(-1);
-  }, [inputValue, combinedSuggestions]);
+  }, [combinedSuggestions]);
 
   // Enhanced keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -273,7 +276,13 @@ const TagInput: React.FC<TagInputProps> = ({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                onFocus={() => setIsOpen(true)}
+                onFocus={() => {
+                  setIsOpen(true);
+                }}
+                onBlur={() => {
+                  // Delay closing to allow clicks on suggestions
+                  setTimeout(() => setIsOpen(false), 150);
+                }}
                 className={cn(
                   "pr-8",
                   isInputInvalid && "border-destructive focus-visible:ring-destructive"
