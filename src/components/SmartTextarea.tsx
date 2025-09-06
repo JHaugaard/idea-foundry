@@ -55,13 +55,16 @@ const SmartTextarea: React.FC<SmartTextareaProps> = ({
     onChange?.(e);
     onContentChange?.(newValue);
 
-    // Extract hashtags and notify parent
+    // Extract hashtags and notify parent, but exclude the currently active hashtag while typing
     const hashtags = parseHashtags(newValue);
-    onTagsDetected?.(hashtags);
+    const filteredHashtags = hashtagAutocomplete.activeHashtag 
+      ? hashtags.filter(tag => !tag.startsWith(hashtagAutocomplete.activeHashtag!.text))
+      : hashtags;
+    onTagsDetected?.(filteredHashtags);
 
     // Update cursor position after change
     setTimeout(handleSelectionChange, 0);
-  }, [onChange, onContentChange, onTagsDetected, handleSelectionChange]);
+  }, [onChange, onContentChange, onTagsDetected, handleSelectionChange, hashtagAutocomplete.activeHashtag]);
 
   // Handle bracket link selection
   const handleBracketSelect = useCallback((note: any) => {
@@ -184,6 +187,15 @@ const SmartTextarea: React.FC<SmartTextareaProps> = ({
     props.onKeyDown
   ]);
 
+  // Handle blur to commit fully typed hashtags
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
+    // Parse and commit all complete hashtags when losing focus
+    const hashtags = parseHashtags(e.target.value);
+    onTagsDetected?.(hashtags);
+    
+    props.onBlur?.(e);
+  }, [onTagsDetected, props.onBlur]);
+
   // Update patterns when cursor moves
   useEffect(() => {
     const bracketMatch = bracketLinking.detectBracketPattern(value as string, cursorPosition);
@@ -200,6 +212,7 @@ const SmartTextarea: React.FC<SmartTextareaProps> = ({
         value={value}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
         onSelect={handleSelectionChange}
         onClick={handleSelectionChange}
         className={cn(className)}
