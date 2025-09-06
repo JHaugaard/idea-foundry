@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Save, Trash2, X, Calendar, Tag as TagIcon, Hash, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import TagInput from '@/components/TagInput';
+import TagSuggestionsPanel from '@/components/TagSuggestionsPanel';
 import { FileAttachmentRenderer } from '@/components/FileAttachmentRenderer';
 import { AttachmentInlineViewer } from '@/components/AttachmentInlineViewer';
 import { parseHashtags, mergeTags } from '@/lib/tags';
@@ -418,6 +419,13 @@ export default function NoteView() {
 
           {/* Sidebar */}
           <div className="space-y-4">
+            {/* Tag Suggestions */}
+            <TagSuggestionsPanel
+              currentTags={tags}
+              onAddTag={(tag) => setTags(prev => [...prev, tag])}
+              maxTags={10}
+            />
+
             {/* Processing Options */}
             <Card>
               <CardHeader>
