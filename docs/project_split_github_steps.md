@@ -11,10 +11,10 @@ git init
 git remote add origin https://github.com/yourusername/infrastructure.git
 
 # Copy files FROM idea-foundry TO infrastructure
-cp ~/Developer/idea-foundry/docs/development-environment-setup-guide.md \
+cp dev/develop/idea-foundry/docs/development-environment-setup-guide.md \
    docs/00-complete-guide.md
 
-cp ~/Developer/idea-foundry/docs/INFRASTRUCTURE_REPO_README.md \
+cp ~/dev/develop/idea-foundry/docs/INFRASTRUCTURE_REPO_README.md \
    README.md
 
 # Create structure, add files
