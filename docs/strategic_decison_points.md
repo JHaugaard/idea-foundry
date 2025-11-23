@@ -1,4 +1,4 @@
-## Your Strategic Decisions - My Thoughts
+## Strategic Decisions
 
 **1. Lovable ↔ Claude Code Git Workflow** This is smart:
 
