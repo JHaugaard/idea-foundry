@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<homelab>
+  <metadata>
+    <name>Haugaard Homelab Infrastructure</name>
+    <vps>VPS8 (Hostinger KVM 8)</vps>
+    <specs>8 cores, 32GB RAM, 400GB storage</specs>
+    <base_domain>haugaard.dev</base_domain>
+    <ssh_alias>ssh vps8</ssh_alias>
+    <ssh_user>john</ssh_user>
+    <home_directory>/home/john/homelab</home_directory>
+    <docker_network>homelab-net</docker_network>
+    <last_updated>2025-11-16</last_updated>
+  </metadata>
+
+  <services>
+    <service>
+      <name>Caddy</name>
+      <purpose>Reverse proxy with automatic HTTPS</purpose>
+      <deployment_order>1</deployment_order>
+      <location>/home/john/homelab/caddy</location>
+      <docker_image>caddy:2.7-alpine</docker_image>
+      <container_name>caddy</container_name>
+      <public_ports>
+        <port protocol="http">80</port>
+        <port protocol="https">443</port>
+      </public_ports>
+      <internal_port>N/A - reverse proxy</internal_port>
+      <volumes>
+        <volume name="caddy_data" path="/data"/>
+        <volume name="caddy_config" path="/config"/>
+        <file type="config" path="./Caddyfile"/>
+      </volumes>
+      <network>homelab-net</network>
+      <status>Running</status>
+      <access>
+        <tls>automatic via Let's Encrypt</tls>
+        <email>jhaugaard@mac.com</email>
+        <security_headers>HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy</security_headers>
+      </access>
+      <routes>
+        <route domain="supabase.haugaard.dev" backend="supabase-kong:8000"/>
+        <route domain="n8n.haugaard.dev" backend="n8n:5678"/>
+        <route domain="ollama.haugaard.dev" backend="ollama:11434"/>
+        <route domain="wikijs.haugaard.dev" backend="wikijs:3000"/>
+        <route domain="pocketbase.haugaard.dev" backend="pocketbase:8090"/>
+      </routes>
+    </service>
+
+    <service>
+      <name>Supabase</name>
+      <purpose>Complete backend platform (PostgreSQL, Auth, REST API, Realtime)</purpose>
+      <deployment_order>2</deployment_order>
+      <location>/home/john/homelab/supabase</location>
+      <docker_image>supabase official stack</docker_image>
+      <components>
+        <component name="supabase-db" image="postgres:15-alpine" port_internal="5432" port_host="127.0.0.1:5432"/>
+        <component name="supabase-kong" image="kong:3-alpine" port_internal="8000" port_host="127.0.0.1:8000"/>
+        <component name="supabase-auth" port_internal="9999"/>
+        <component name="supabase-rest" port_internal="3000"/>
+        <component name="supabase-realtime" port_internal="4000"/>
+        <component name="supabase-storage" port_internal="5000"/>
+        <component name="supabase-meta" port_internal="8080"/>
+      </components>
+      <network>homelab-net</network>
+      <database>
+        <type>PostgreSQL 15</type>
+        <host>supabase-db (internal) or localhost via SSH tunnel (external)</host>
+        <port>5432</port>
+        <admin_user>postgres</admin_user>
+        <admin_password>stored in /home/john/homelab/supabase/.env</admin_password>
+      </database>
+      <api_endpoint>https://supabase.haugaard.dev</api_endpoint>
+      <rest_api_endpoint>https://supabase.haugaard.dev/rest/v1/</rest_api_endpoint>
+      <volumes>
+        <volume name="supabase_db" path="/var/lib/postgresql/data"/>
+      </volumes>
+      <environment_file>/home/john/homelab/supabase/.env</environment_file>
+      <status>Running</status>
+      <features>
+        <feature>PostgreSQL with pgvector extension</feature>
+        <feature>Auto-generated REST API via PostgREST</feature>
+        <feature>GoTrue authentication service</feature>
+        <feature>Real-time subscriptions</feature>
+        <feature>File storage</feature>
+      </features>
+      <users>
+        <user name="postgres" role="superuser"/>
+        <user name="n8n_user" role="limited" databases="n8n"/>
+      </users>
+      <backup>
+        <frequency>Daily at 3 AM</frequency>
+        <destination>Backblaze B2 (s3://haugaard-homelab-backups/homelab/)</destination>
+        <backup_file>supabase_all_YYYYMMDD_HHMMSS.sql.gz</backup_file>
+        <retention>30 days on B2</retention>
+      </backup>
+      <access_from_docker>
+        <host>supabase-db</host>
+        <port>5432</port>
+        <user>postgres</user>
+      </access_from_docker>
+      <access_from_external>
+        <method>SSH tunnel</method>
+        <command>ssh -L 5432:localhost:5432 vps8</command>
+        <then_connect>localhost:5432</then_connect>
+      </access_from_external>
+    </service>
+
+    <service>
+      <name>n8n</name>
+      <purpose>Workflow automation and orchestration</purpose>
+      <deployment_order>3</deployment_order>
+      <location>/home/john/homelab/n8n</location>
+      <docker_image>n8nio/n8n:1.19</docker_image>
+      <container_name>n8n</container_name>
+      <internal_port>5678</internal_port>
+      <port_host>127.0.0.1:5678</port_host>
+      <network>homelab-net</network>
+      <url>https://n8n.haugaard.dev</url>
+      <volumes>
+        <volume name="n8n_data" path="/home/node/.n8n"/>
+      </volumes>
+      <environment_file>/home/john/homelab/n8n/.env</environment_file>
+      <database>
+        <type>PostgreSQL (shared Supabase)</type>
+        <host>supabase-db (internal)</host>
+        <port>5432</port>
+        <database_name>n8n</database_name>
+        <user>n8n_user</user>
+        <password>stored in /home/john/homelab/n8n/.env</password>
+      </database>
+      <config>
+        <host>n8n.haugaard.dev</host>
+        <protocol>https</protocol>
+        <webhook_url>https://n8n.haugaard.dev/</webhook_url>
+        <encryption_key>stored in .env</encryption_key>
+        <timezone>America/New_York</timezone>
+      </config>
+      <status>Running</status>
+      <healthcheck>
+        <endpoint>http://localhost:5678/healthz</endpoint>
+        <interval>30s</interval>
+      </healthcheck>
+      <backup>
+        <frequency>Daily at 3 AM</frequency>
+        <destination>Backblaze B2</destination>
+        <backup_file>n8n_data_YYYYMMDD_HHMMSS.tar.gz</backup_file>
+      </backup>
+    </service>
+
+    <service>
+      <name>Wiki.js</name>
+      <purpose>Documentation and knowledge management</purpose>
+      <deployment_order>4</deployment_order>
+      <location>/home/john/homelab/wikijs</location>
+      <docker_image>ghcr.io/requarks/wiki:2.5</docker_image>
+      <container_name>wikijs</container_name>
+      <internal_port>3000</internal_port>
+      <port_host>127.0.0.1:3000</port_host>
+      <network>homelab-net</network>
+      <url>https://wikijs.haugaard.dev</url>
+      <volumes>
+        <volume name="wikijs_db_data" path="/var/lib/postgresql/data"/>
+      </volumes>
+      <environment_file>/home/john/homelab/wikijs/.env</environment_file>
+      <database>
+        <type>PostgreSQL 15 (dedicated container)</type>
+        <container_name>wikijs-db</container_name>
+        <docker_image>postgres:15-alpine</docker_image>
+        <host>wikijs-db (internal)</host>
+        <port>5433</port>
+        <database_name>wikijs</database_name>
+        <user>wikijs</user>
+        <password>stored in /home/john/homelab/wikijs/.env</password>
+        <port_host>127.0.0.1:5433</port_host>
+      </database>
+      <status>Running</status>
+      <healthcheck>
+        <endpoint>http://localhost:3000</endpoint>
+        <interval>30s</interval>
+        <start_period>90s</start_period>
+      </healthcheck>
+      <backup>
+        <frequency>Daily at 3 AM</frequency>
+        <destination>Backblaze B2</destination>
+        <backup_file>wikijs_YYYYMMDD_HHMMSS.sql.gz</backup_file>
+      </backup>
+    </service>
+
+    <service>
+      <name>Ollama</name>
+      <purpose>Local LLM inference (CPU-based)</purpose>
+      <deployment_order>5</deployment_order>
+      <location>/home/john/homelab/ollama</location>
+      <docker_image>ollama/ollama:0.1</docker_image>
+      <container_name>ollama</container_name>
+      <internal_port>11434</internal_port>
+      <port_host>127.0.0.1:11434</port_host>
+      <network>homelab-net</network>
+      <url>https://ollama.haugaard.dev</url>
+      <volumes>
+        <volume name="ollama_models" path="/root/.ollama"/>
+      </volumes>
+      <environment_file>/home/john/homelab/ollama/.env</environment_file>
+      <resource_limits>
+        <cpu>6 cores (leave 2 for other services)</cpu>
+        <memory>16GB max</memory>
+      </resource_limits>
+      <config>
+        <parallel_requests>1</parallel_requests>
+        <max_loaded_models>1</max_loaded_models>
+        <keep_alive>5m</keep_alive>
+      </config>
+      <status>Running</status>
+      <api_endpoint>https://ollama.haugaard.dev/api/generate</api_endpoint>
+      <models>
+        <note>Check current models with: docker exec ollama ollama list</note>
+        <recommended>
+          <model name="llama3.2:3b" size="~2GB" performance="fast"/>
+          <model name="nomic-embed-text" size="~274MB" performance="very_fast"/>
+        </recommended>
+      </models>
+      <performance_expectations>
+        <cpu_inference>10-25 tokens/sec (small models)</cpu_inference>
+        <single_user_suitable>yes</single_user_suitable>
+        <note>CPU will saturate during inference; impacts other services temporarily</note>
+      </performance_expectations>
+    </service>
+
+    <service>
+      <name>PocketBase</name>
+      <purpose>Lightweight backend alternative to Supabase</purpose>
+      <deployment_order>6</deployment_order>
+      <location>/home/john/homelab/pocketbase</location>
+      <docker_image>ghcr.io/muchobien/pocketbase:0.20.0</docker_image>
+      <container_name>pocketbase</container_name>
+      <internal_port>8090</internal_port>
+      <port_host>127.0.0.1:8090</port_host>
+      <network>homelab-net</network>
+      <url>https://pocketbase.haugaard.dev</url>
+      <admin_url>https://pocketbase.haugaard.dev/_/</admin_url>
+      <volumes>
+        <volume name="pocketbase_data" path="/pb/pb_data"/>
+      </volumes>
+      <environment_file>/home/john/homelab/pocketbase/.env</environment_file>
+      <database>
+        <type>Embedded SQLite</type>
+        <location>in volume pocketbase_data</location>
+      </database>
+      <status>Running</status>
+      <api_endpoint>https://pocketbase.haugaard.dev/api/</api_endpoint>
+      <healthcheck>
+        <endpoint>http://localhost:8090/api/health</endpoint>
+        <interval>30s</interval>
+        <start_period>30s</start_period>
+      </healthcheck>
+      <backup>
+        <frequency>Daily at 3 AM</frequency>
+        <destination>Backblaze B2</destination>
+        <backup_file>pocketbase_data_YYYYMMDD_HHMMSS.tar.gz</backup_file>
+      </backup>
+    </service>
+  </services>
+
+  <firewall>
+    <tool>UFW (Uncomplicated Firewall)</tool>
+    <note>Docker internal services bind to 127.0.0.1, isolated from external access. Only Caddy faces internet on ports 80, 443.</note>
+  </firewall>
+
+  <database_access>
+    <from_docker_container>
+      <host>supabase-db</host>
+      <port>5432</port>
+      <user>postgres</user>
+      <password>from /home/john/homelab/supabase/.env POSTGRES_PASSWORD</password>
+      <note>Only works from containers on homelab-net</note>
+    </from_docker_container>
+    <from_external_laptop>
+      <method>SSH tunnel</method>
+      <setup_command>ssh -L 5432:localhost:5432 vps8</setup_command>
+      <then_connect>
+        <host>localhost</host>
+        <port>5432</port>
+        <user>postgres</user>
+        <password>from .env</password>
+      </then_connect>
+      <tools_supported>psql, DataGrip, TablePlus, DBeaver, etc.</tools_supported>
+      <security_note>PostgreSQL is never exposed to internet. Always use SSH tunnel for external access.</security_note>
+    </from_external_laptop>
+  </database_access>
+
+
+  <environment_master_file>
+    <path>/home/john/homelab/.env.master</path>
+    <contents>
+      <variable name="DOMAIN">haugaard.dev</variable>
+      <variable name="B2_KEY_ID">from Backblaze account</variable>
+      <variable name="B2_APPLICATION_KEY">from Backblaze account</variable>
+      <variable name="B2_BACKUP_BUCKET">haugaard-homelab-backups</variable>
+      <variable name="B2_REGION">us-west-004</variable>
+      <variable name="HOMELAB_NETWORK">homelab-net</variable>
+      <variable name="TZ">America/New_York</variable>
+    </contents>
+    <sourced_by>all service docker-compose.yml files</sourced_by>
+  </environment_master_file>
+
+  <vps_specs>
+    <provider>Hostinger KVM</provider>
+    <plan>VPS8</plan>
+    <ip_address>72.60.27.146</ip_address>
+    <cpu_cores>8</cpu_cores>
+    <ram>32GB</ram>
+    <storage>400GB</storage>
+    <cpu_inference_note>All Ollama inference is CPU-based; no GPU available</cpu_inference_note>
+  </vps_specs>
+
+</homelab>
