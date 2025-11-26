@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report>
+  <metadata>
+    <title>Redis on Fly.io: A Comprehensive Guide for Learning and Hobby Projects</title>
+    <date>2025-11-26</date>
+    <format>Semantic XML</format>
+  </metadata>
+  
+  <introduction>
+    <paragraph>
+      <text>Redis is an open-source, in-memory data store that serves as a high-performance database, cache, and message broker, known for extremely low latency and rich data structures.</text>
+      <citations>web:1,web:5</citations>
+    </paragraph>
+    <paragraph>
+      <text>Fly.io provides two well-integrated approaches to run Redis: a managed Upstash integration or self-hosted Redis on Fly Machines. For developers learning Redis or running hobby projects, understanding these options and their costs is essential to choosing the right approach.</text>
+      <citations></citations>
+    </paragraph>
+  </introduction>
+
+  <section>
+    <heading level="2">Understanding Redis: Core Capabilities</heading>
+    <paragraph>
+      <text>Redis excels through five primary features that make it invaluable for modern applications:</text>
+      <citations>web:1,web:3,web:5</citations>
+    </paragraph>
+
+    <feature>
+      <name>In-memory speed with persistence</name>
+      <description>Keeps data in RAM for extremely fast reads and writes while offering snapshot and append-only persistence options so data can survive restarts and failures. This combination makes Redis suitable for both ephemeral caching and more durable workloads.</description>
+      <citations>web:1,web:5,web:12</citations>
+    </feature>
+
+    <feature>
+      <name>Rich data structures</name>
+      <description>Includes strings, hashes, lists, sets, sorted sets, bitmaps, HyperLogLogs, geospatial indexes, and streams (plus newer JSON and vector types via modules) that let you solve many problems—sessions, leaderboards, analytics, queues—without extra layers of abstraction. This eliminates the need for specialized systems for each use case.</description>
+      <citations>web:1,web:3,web:7</citations>
+    </feature>
+
+    <feature>
+      <name>High availability and clustering</name>
+      <description>Through Redis Sentinel (which provides monitoring and automatic failover) and Redis Cluster (which enables sharding and horizontal scaling), Redis allows support for high-traffic, always-on applications. These features ensure data survives node failures and scales with demand.</description>
+      <citations>web:1,web:3,web:7</citations>
+    </feature>
+
+    <feature>
+      <name>Pub/Sub and real-time messaging</name>
+      <description>Built into Redis, enables publish/subscribe messaging for real-time notifications, chat, and event-driven workflows without a separate message broker. Combined with streams, Redis can power event sourcing and log-like data pipelines.</description>
+      <citations>web:3,web:5</citations>
+    </feature>
+
+    <feature>
+      <name>Broad ecosystem and clients</name>
+      <description>Official and community libraries for most programming languages, plus a growing set of modules (search, JSON, vectors, time series) and integrations with popular clouds and frameworks, make adoption straightforward in existing stacks.</description>
+      <citations>web:2,web:7,web:11</citations>
+    </feature>
+  </section>
+
+  <section>
+    <heading level="2">Redis Deployment Models: Self-Hosted vs. Managed</heading>
+    <paragraph>
+      <text>In general, Redis can be deployed either on-premises or in the cloud, with teams often choosing based on control requirements, operational capacity, and scale. Self-hosting is common in development and on-premise environments where teams value full control over configuration, networking, and cost; however, operating Redis yourself means handling installation, upgrades, monitoring, backups, and failover, which becomes a significant operational burden at scale.</text>
+      <citations>web:4,web:14,web:10,web:14,web:15</citations>
+    </paragraph>
+  </section>
+
+  <section>
+    <heading level="2">Redis on Fly.io: Two Paths</heading>
+    <paragraph>
+      <text>Fly.io offers two distinct, well-integrated approaches to run Redis: a fully managed Upstash integration or a self-hosted Redis app running on Fly Machines.</text>
+    </paragraph>
+
+    <subsection>
+      <heading level="3">Managed Redis via Upstash</heading>
+      <paragraph>
+        <text>Upstash for Redis is a managed service fully integrated into Fly's ecosystem, with instances running on Upstash infrastructure co-located in Fly regions for minimal latency. Your Fly apps—and external applications—communicate with Upstash Redis over the network using the standard Redis protocol and HTTP APIs, with credentials and endpoints provided by Upstash.</text>
+        <citations>web:16,web:17,web:20</citations>
+      </paragraph>
+      <paragraph>
+        <text>Provisioning and management use simple fly redis commands (create, connect, proxy, destroy), and Fly automatically sets up regions, replicas, and secure connectivity to your Fly apps. For local development, commands like fly redis connect and fly redis proxy open secure tunnels or local proxies to your production Upstash Redis, letting your dev environment use the same Redis instance as production.</text>
+        <citations>web:16,web:19,web:21,web:20,web:21,web:26</citations>
+      </paragraph>
+      <paragraph>
+        <text>The Upstash integration is optimized for low-latency access from Fly apps, with optional global read replicas and a pay-per-use billing model handled directly by Upstash, meaning you avoid thinking about CPU, RAM sizing, OS updates, or persistence—you simply pay for commands and storage.</text>
+        <citations>web:17,web:20</citations>
+      </paragraph>
+    </subsection>
+
+    <subsection>
+      <heading level="3">Self-Hosted Redis on Fly Machines</heading>
+      <paragraph>
+        <text>Fly also maintains an official Redis app and image so you can run your own Redis server as a regular Fly app on Fly Machines. You attach Fly Volumes for persistence, keep the volume in the same region as the Redis app, and connect other Fly apps to it over Fly's private .internal network for private, low-latency access without exposing Redis publicly.</text>
+        <citations>web:23,web:27,web:30,web:22,web:23,web:27</citations>
+      </paragraph>
+      <paragraph>
+        <text>With self-hosted Redis, you manage everything: configuration, upgrades, monitoring, backups, and failover. However, you gain full control over Redis behavior, can use any Redis module or custom compilation, and have predictable costs tied only to the Machine and volume sizes you provision.</text>
+        <citations>web:27,web:30</citations>
+      </paragraph>
+    </subsection>
+  </section>
+
+  <section>
+    <heading level="2">How Fly Handles Networking and Exposure</heading>
+    <paragraph>
+      <text>Fly.io acts as the proxy and edge layer for all your applications: Each Fly app can expose services on specific ports, and Fly's global Anycast network routes incoming traffic (HTTP/TCP/UDP) to the correct Machines. For internal services like self-hosted Redis, you typically do not expose a public service; instead, other Fly apps talk to it over the private .internal network, while your public-facing apps expose HTTP/TLS entrypoints normally. This means Fly handles being "the proxy layer to the world," and you configure which ports are public versus internal in your app's fly.toml and service definitions.</text>
+      <citations>web:37,web:52,web:22,web:23,web:37,web:52</citations>
+    </paragraph>
+  </section>
+
+  <section>
+    <heading level="2">Cost Analysis: Upstash Pay-As-You-Go vs. Self-Hosted</heading>
+    <paragraph>
+      <text>Both deployment models involve separate meters: one for Redis usage (Upstash) or one for Fly compute and storage (self-hosted). Understanding these costs is critical for choosing the right option for hobby and learning projects.</text>
+    </paragraph>
+
+    <subsection>
+      <heading level="3">Upstash Pay-As-You-Go Pricing</heading>
+      <paragraph>
+        <text>Upstash charges on three dimensions: commands (requests), data storage, and outbound bandwidth.</text>
+        <citations>web:53,web:36</citations>
+      </paragraph>
+
+      <cost_component>
+        <name>Free tier baseline</name>
+        <details>Includes one free Redis database per account with up to 256 MB of stored data and 500,000 commands per month at no cost; you only start paying once you exceed these limits.</details>
+        <citations>web:53,web:54,web:60</citations>
+      </cost_component>
+
+      <cost_component>
+        <name>Request (command) costs</name>
+        <rate>$0.20 per 100,000 commands</rate>
+        <details>Every Redis command is billed, including ones that return empty or cached responses; this was clarified in a 2024 pricing update. For light hobby use, even several hundred thousand extra commands will typically land you in the "cents to a couple of dollars per month" range.</details>
+        <examples>
+          <example>
+            <usage>1 million extra commands/month</usage>
+            <cost>$2.00</cost>
+          </example>
+          <example>
+            <usage>10 million extra commands/month</usage>
+            <cost>$20.00</cost>
+          </example>
+        </examples>
+        <citations>web:36,web:53,web:55,web:44,web:61,web:36,web:53</citations>
+      </cost_component>
+
+      <cost_component>
+        <name>Storage costs</name>
+        <rate>$0.25 per GB per month</rate>
+        <details>You only pay for data actually stored, and the 256 MB included in the free tier does not incur additional cost. Pay-as-you-go supports up to 100 GB of data under current limits.</details>
+        <examples>
+          <example>
+            <storage>1 GB</storage>
+            <cost>$0.25/month</cost>
+          </example>
+          <example>
+            <storage>10 GB</storage>
+            <cost>$2.50/month</cost>
+          </example>
+          <example>
+            <storage>50 GB</storage>
+            <cost>$12.50/month</cost>
+          </example>
+        </examples>
+        <citations>web:53,web:56,web:53,web:60,web:53</citations>
+      </cost_component>
+
+      <cost_component>
+        <name>Bandwidth costs</name>
+        <details>First 200 GB of outbound bandwidth per month are free on pay-as-you-go; beyond that, bandwidth is charged at $0.03 per additional GB. Inbound bandwidth is generally not charged separately.</details>
+        <citations>web:53,web:54,web:53,web:56</citations>
+      </cost_component>
+
+      <realistic_scenario>
+        <name>Realistic hobby project costs</name>
+        <description>For a small, low-traffic app using caching, rate limiting, or session storage, a typical month might include 1–2 million total commands (with 500k free → $1–$3 billed), a few tens or hundreds of MB of storage (usually within the free 256 MB), and bandwidth far below 200 GB/month (so $0 in bandwidth fees).</description>
+        <estimated_total>$0–$5/month or free if within free tier limits</estimated_total>
+        <citations>web:36,web:53,web:56</citations>
+      </realistic_scenario>
+    </subsection>
+
+    <subsection>
+      <heading level="3">Self-Hosted Redis on Fly Machines</heading>
+      <paragraph>
+        <text>Self-hosted Redis on Fly requires paying for both a Machine and (optionally) a volume for persistence.</text>
+        <citations>web:37,web:43</citations>
+      </paragraph>
+
+      <cost_component>
+        <name>Machine costs</name>
+        <details>Small shared Machines are roughly $1.90–$3.00 per month when run 24/7; a tiny shared 256 MB Machine (the smallest practical for Redis) runs about $1.90–$2.00/month.</details>
+        <citations>web:37,web:43,web:51</citations>
+      </cost_component>
+
+      <cost_component>
+        <name>Volume costs</name>
+        <rate>$0.15 per GB per month</rate>
+        <details>For a 1–5 GB volume typical of hobby Redis data, that's well under $1/month.</details>
+        <citations>web:37,web:51</citations>
+      </cost_component>
+
+      <realistic_scenario>
+        <name>Realistic hobby project costs</name>
+        <description>A complete self-hosted setup might include a 256 MB shared Machine (~$2–$3/month) plus a 1–5 GB volume (~$0.15–$0.75/month), totaling roughly $2–$4/month to run Redis 24/7, independent of command volume or storage consumed.</description>
+        <estimated_total>$2–$4/month</estimated_total>
+        <citations>web:37,web:43,web:51</citations>
+      </realistic_scenario>
+    </subsection>
+  </section>
+
+  <section>
+    <heading level="2">Cost Comparison and When to Choose Each</heading>
+    <comparison>
+      <comparison_row>
+        <factor>Free tier</factor>
+        <upstash_payg>256 MB, 500k commands/month</upstash_payg>
+        <self_hosted_fly>None (you pay for the Machine)</self_hosted_fly>
+      </comparison_row>
+      <comparison_row>
+        <factor>Cost model</factor>
+        <upstash_payg>Variable (commands + storage + bandwidth)</upstash_payg>
+        <self_hosted_fly>Fixed (Machine + volume)</self_hosted_fly>
+      </comparison_row>
+      <comparison_row>
+        <factor>Typical hobby cost</factor>
+        <upstash_payg>$0–$5/month</upstash_payg>
+        <self_hosted_fly>$2–$4/month</self_hosted_fly>
+      </comparison_row>
+      <comparison_row>
+        <factor>Operational overhead</factor>
+        <upstash_payg>None (fully managed)</upstash_payg>
+        <self_hosted_fly>You manage updates, backups, monitoring</self_hosted_fly>
+      </comparison_row>
+      <comparison_row>
+        <factor>Customization</factor>
+        <upstash_payg>Limited (modules via Upstash)</upstash_payg>
+        <self_hosted_fly>Full control (any module, config)</self_hosted_fly>
+      </comparison_row>
+      <comparison_row>
+        <factor>Best for</factor>
+        <upstash_payg>Learning, prototyping, sporadic traffic</upstash_payg>
+        <self_hosted_fly>Tinkering, predictable costs, full control</self_hosted_fly>
+      </comparison_row>
+    </comparison>
+
+    <recommendation>
+      <option_one>
+        <name>Choose Upstash pay-as-you-go</name>
+        <when>if you are experimenting, running multiple small apps, expect sporadic or low traffic where command volume stays within free/cheap limits, and want zero operational overhead.</when>
+        <citations>web:36,web:54</citations>
+      </option_one>
+      <option_two>
+        <name>Choose self-hosted Redis on Fly</name>
+        <when>if you want to tinker with Redis configuration, backups, replication, or use advanced modules; prefer a very predictable "fixed" cost independent of command volume; or are willing to handle basic ops tasks for slightly lower cost at small scale.</when>
+        <citations>web:27,web:30</citations>
+      </option_two>
+    </recommendation>
+  </section>
+
+  <section>
+    <heading level="2">Practical Development Workflow on Fly.io</heading>
+    <paragraph>
+      <text>Whether you choose Upstash or self-hosted, the workflow is streamlined: Set up your Redis instance using fly redis create or by provisioning your own Fly app, then use fly redis connect or fly redis proxy to access it from your local dev environment over a secure tunnel or proxy. Wire environment variables and secrets into your Fly apps so they connect automatically in production. Other Fly apps reach Redis over the private .internal network (for self-hosted) or via the Upstash endpoint (for managed), while external apps can connect if you configure a public port or use a proxy, all still speaking the standard Redis protocol.</text>
+      <citations>web:17,web:20,web:23,web:20,web:21,web:17,web:20,web:23,web:22,web:23,web:27</citations>
+    </paragraph>
+  </section>
+
+  <conclusion>
+    <paragraph>
+      <text>Redis on Fly.io is an excellent fit for learning and hobby projects because Fly offers both a zero-ops managed path (Upstash) and a tinkerer-friendly self-hosted path (Fly Machines + Volumes). For learning purposes, Upstash's generous free tier (256 MB, 500,000 commands/month) lets you experiment at no cost, while self-hosted Redis provides a predictable $2–$4/month baseline if you want full control or are running a more complex setup. In both cases, Fly's networking and command-line tools make it trivial to integrate Redis with your other Fly apps and local development environment, so you can focus on learning Redis semantics rather than operations.</text>
+      <citations>web:36,web:53,web:54,web:37,web:43,web:16,web:19,web:21,web:22,web:23</citations>
+    </paragraph>
+  </conclusion>
+
+</report>
