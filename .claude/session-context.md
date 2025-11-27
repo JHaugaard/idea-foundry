@@ -9,21 +9,75 @@
 ## Current Sprint
 
 ### Active Work
-- [ ] Provision Hostinger VPS for self-hosted infrastructure
-- [ ] Create separate infrastructure repository
-- [ ] Deploy self-hosted Supabase stack
-- [ ] Deploy Ollama for local LLM inference
-- [ ] Set up Nginx reverse proxy with SSL
+- [ ] Phase 1: Database Schema Migration (vector(768) + metadata columns)
+- [ ] Phase 2: Edge Functions (replace OpenAI with Ollama)
+- [ ] Phase 3: Client-side simplification (Ollama-only)
+- [ ] Phase 4: Environment configuration
+- [ ] Phase 5: Search logic validation and threshold tuning
+- [ ] Phase 6: Cleanup and documentation
 
 ### Recently Completed
+- ✅ **Embedding Model Decision** - Locked to `nomic-embed-text` via Ollama (2025-11-26)
+  - Analyzed model lock-in risks and mitigation strategies
+  - Created comprehensive migration plan with 6 phases
+  - Documented database schema changes, Edge Function updates, environment config
+- ✅ **Migration Plan Created** - `search/nomic-migration-plan.md` (2025-11-26)
+  - Moved from Claude Code system location to project directory
+  - Covers all technical details, risks, validation checklist
 - ✅ Completed comprehensive infrastructure planning (2025-10-25)
 - ✅ Created development-environment-setup-guide.md (2025-10-25)
 - ✅ Decided on Infrastructure-First approach (2025-10-25)
-- ✅ Reviewed Lovable technical report on core functionality (2025-10-25)
 
 ---
 
-## Today's Session - 2025-10-25
+## Today's Session - 2025-11-26
+
+### Objective
+Lock down embedding model choice and create comprehensive migration plan for v1.0 release
+
+### Major Decisions Made
+
+**1. Embedding Model Decision: `nomic-embed-text` via Ollama**
+- **Model**: nomic-embed-text (768 dimensions)
+- **Provider**: Ollama on homelab (https://ollama.haugaard.dev)
+- **Rationale**: Free, private, excellent quality, leverages existing infrastructure
+- **Lock-in Analysis**: Vectors are incompatible across models; re-embedding entire corpus required if switching
+- **Mitigation**: Added model metadata columns to schema for future flexibility
+
+**2. Fresh Start Approved**
+- No production embeddings to migrate
+- Delete existing data, start clean with 768-dim schema
+- Simplifies deployment process
+
+**3. Architecture Decision**
+- Single embedding model (no multi-model abstraction for v1.0)
+- All embeddings go through Ollama via Edge Functions
+- Removed client-side local embedding complexity
+- Environment variable configuration for flexibility
+
+### Documentation Created
+
+**Migration Plan**: `search/nomic-migration-plan.md` (2025-11-26)
+- 6 implementation phases with detailed technical steps
+- Database schema changes (vector(1536) → vector(768))
+- Edge Function updates (OpenAI → Ollama)
+- Environment configuration requirements
+- Validation checklist and risk mitigations
+- Post-v1.0 enhancement roadmap
+
+### Key Technical Decisions
+
+| Aspect | Decision | Rationale |
+|--------|----------|-----------|
+| Embedding Model | nomic-embed-text (768-dim) | Free, local, excellent quality |
+| Vector DB | Supabase PostgreSQL (pgvector) | Already running on homelab VPS |
+| Migration Cost | Low (small corpus expected) | Re-embedding 10K notes = hours, not days |
+| Schema Flexibility | Added model metadata columns | Enables future model switching without redesign |
+| Client Approach | Ollama-only | Simpler architecture, consistent model usage |
+
+---
+
+## Previous Session - 2025-10-25
 
 ### Objective
 Strategic planning for transitioning from Lovable to Claude Code + self-hosted infrastructure deployment
