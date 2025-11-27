@@ -5,7 +5,19 @@
       "Bash(npm run dev:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(brew install:*)",
+      "Bash(/opt/homebrew/opt/libpq/bin/psql:*)",
+      "Bash(scp:*)",
+      "Bash(ssh:*)",
+      "Bash(curl:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(cat:*)",
+      "Bash(node:*)",
+      "Bash(env)",
+      "Bash(launchctl getenv:*)",
+      "Bash(launchctl print-env:*)"
     ],
     "deny": [],
     "ask": []

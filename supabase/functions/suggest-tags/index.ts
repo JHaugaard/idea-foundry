@@ -7,26 +7,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const OLLAMA_URL = Deno.env.get('OLLAMA_URL') || 'https://ollama.haugaard.dev';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { 
-      content, 
-      title, 
-      existingTags = [], 
+    const {
+      content,
+      title,
+      existingTags = [],
       noteId,
       mode = 'suggestions', // 'suggestions', 'quality_analysis', 'cleanup', 'translation'
       targetLanguage = 'en',
       analysisType = 'content'
     } = await req.json();
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
-    }
 
     // Get Supabase client for user's existing tags
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -73,54 +70,53 @@ serve(async (req) => {
     // Handle different modes
     let prompt = '';
     let systemMessage = '';
-    let model = 'gpt-4o-mini';
 
     switch (mode) {
       case 'suggestions':
         systemMessage = 'You are an expert tagging assistant that suggests relevant, specific tags. Return only valid JSON arrays with tag confidence scores.';
         prompt = buildSuggestionsPrompt(title, content, existingTags, allUserTags, rejectedTags, acceptedTags, preferences);
         break;
-        
+
       case 'quality_analysis':
         systemMessage = 'You are a tag quality analyzer. Assess tag quality and suggest improvements. Return detailed analysis in JSON format.';
         prompt = buildQualityAnalysisPrompt(existingTags, allUserTags);
-        model = 'gpt-5-mini-2025-08-07';
         break;
-        
+
       case 'cleanup':
         systemMessage = 'You are a tag cleanup specialist. Identify duplicates, inconsistencies, and merge opportunities. Return structured JSON.';
         prompt = buildCleanupPrompt(allUserTags);
-        model = 'gpt-5-mini-2025-08-07';
         break;
-        
+
       case 'translation':
         systemMessage = 'You are a multilingual tag translator. Translate and normalize tags while preserving meaning.';
         prompt = buildTranslationPrompt(existingTags, targetLanguage);
         break;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Use Ollama with llama3.2:3b for chat completions
+    const response = await fetch(`${OLLAMA_URL}/api/chat`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
+        model: 'llama3.2:3b',
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt }
         ],
-        max_completion_tokens: mode === 'suggestions' ? 200 : 800,
+        stream: false,
+        format: 'json',
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.statusText}`);
+      const errText = await response.text();
+      throw new Error(`Ollama API error: ${response.status} - ${errText}`);
     }
 
     const data = await response.json();
-    const resultText = data.choices[0].message.content.trim();
+    const resultText = data.message?.content?.trim() || '';
     
     let result: any;
     try {
