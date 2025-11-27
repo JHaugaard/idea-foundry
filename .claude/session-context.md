@@ -2,7 +2,7 @@
 
 ## Project: Idea Foundry
 **Stack**: React + TypeScript + Supabase (self-hosted) + Ollama + Docker + Hostinger VPS
-**Last Updated**: 2025-10-25
+**Last Updated**: 2025-11-26
 
 ---
 
@@ -17,6 +17,11 @@
 - [ ] Phase 6: Cleanup and documentation
 
 ### Recently Completed
+- ✅ **Localhost Dev Mode Authentication** (2025-11-26)
+  - Enabled `BYPASS_AUTH` in AuthContext for local development without Supabase
+  - Consolidated auth bypass to single toggle location
+  - Mock dev user provided: `id: 00000000-0000-0000-0000-000000000001`
+  - Ready for Supabase integration on Homelab (just flip `BYPASS_AUTH = false`)
 - ✅ **Embedding Model Decision** - Locked to `nomic-embed-text` via Ollama (2025-11-26)
   - Analyzed model lock-in risks and mitigation strategies
   - Created comprehensive migration plan with 6 phases
@@ -33,11 +38,20 @@
 ## Today's Session - 2025-11-26
 
 ### Objective
-Lock down embedding model choice and create comprehensive migration plan for v1.0 release
+Lock down embedding model choice, create migration plan for v1.0, and enable localhost development mode
 
 ### Major Decisions Made
 
-**1. Embedding Model Decision: `nomic-embed-text` via Ollama**
+**1. Localhost Development Authentication Strategy**
+- **Decision**: Enable dev bypass mode for localhost development
+- **Implementation**: Single `BYPASS_AUTH` flag in `AuthContext.tsx`
+- **Mock User**: `{ id: '00000000-0000-0000-0000-000000000001', email: 'dev@example.com' }`
+- **Transition to Supabase**: Set `BYPASS_AUTH = false` when Homelab Supabase is ready
+- **Files Changed**:
+  - `src/contexts/AuthContext.tsx` - Enabled BYPASS_AUTH, updated comments
+  - `src/App.tsx` - Removed redundant DEV_BYPASS_AUTH, simplified ProtectedRoute
+
+**2. Embedding Model Decision: `nomic-embed-text` via Ollama**
 - **Model**: nomic-embed-text (768 dimensions)
 - **Provider**: Ollama on homelab (https://ollama.haugaard.dev)
 - **Rationale**: Free, private, excellent quality, leverages existing infrastructure
@@ -69,6 +83,7 @@ Lock down embedding model choice and create comprehensive migration plan for v1.
 
 | Aspect | Decision | Rationale |
 |--------|----------|-----------|
+| Localhost Auth | BYPASS_AUTH in AuthContext | Single toggle, mock user for dev, ready for Supabase |
 | Embedding Model | nomic-embed-text (768-dim) | Free, local, excellent quality |
 | Vector DB | Supabase PostgreSQL (pgvector) | Already running on homelab VPS |
 | Migration Cost | Low (small corpus expected) | Re-embedding 10K notes = hours, not days |
@@ -213,6 +228,12 @@ tag_relationships (tag1, tag2, co_occurrence_count, strength)
 - [ ] Create infrastructure repository on GitHub
 - [ ] Move infrastructure docs to new repo
 - [ ] Commit and push changes to idea-foundry repo (remove moved files)
+
+### When Supabase on Homelab is Ready
+- [ ] Set `BYPASS_AUTH = false` in `src/contexts/AuthContext.tsx`
+- [ ] Update Supabase credentials in `src/integrations/supabase/client.ts`
+- [ ] Test authentication flow (signup, login, logout)
+- [ ] Verify user-scoped data queries work correctly
 
 ### VPS Infrastructure Setup (Weeks 1-2)
 - [ ] Provision Hostinger VPS (16GB RAM, 8 CPU, Ubuntu 22.04)

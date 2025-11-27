@@ -22,8 +22,14 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
 
+  // Show nothing while auth state is loading
+  if (loading) {
+    return null;
+  }
+
+  // Redirect to auth if no user (AuthContext provides mock user in dev mode)
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
