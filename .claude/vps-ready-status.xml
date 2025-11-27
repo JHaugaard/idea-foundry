@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vps-ready-status>
+  <metadata>
+    <description>Configuration reference for VPS instances prepared with the vps-ready skill. Provide this document to Claude Code when deploying applications to a prepared VPS.</description>
+    <skill-version>2.0</skill-version>
+    <last-updated>2025-11-27</last-updated>
+    <user>john</user>
+  </metadata>
+
+  <system-configuration>
+    <timezone>America/New_York</timezone>
+    <automatic-updates enabled="true">
+      <package>unattended-upgrades</package>
+      <scope>security</scope>
+    </automatic-updates>
+    <ipv6 enabled="false"/>
+    <swap>
+      <size>2GB</size>
+      <swappiness>10</swappiness>
+      <path>/swapfile</path>
+    </swap>
+  </system-configuration>
+
+  <firewall type="ufw">
+    <default-incoming>deny</default-incoming>
+    <default-outgoing>allow</default-outgoing>
+    <rules>
+      <rule port="22" protocol="tcp" action="limit" comment="SSH with rate limiting"/>
+      <rule port="80" protocol="tcp" action="allow" comment="HTTP"/>
+      <rule port="443" protocol="tcp" action="allow" comment="HTTPS"/>
+    </rules>
+  </firewall>
+
+  <docker>
+    <socket>/var/run/docker.sock</socket>
+    <tcp-exposed>false</tcp-exposed>
+    <network>
+      <name>jhh-net</name>
+      <subnet>172.18.0.0/16</subnet>
+      <type>bridge</type>
+    </network>
+    <security-settings>
+      <live-restore>true</live-restore>
+      <userland-proxy>false</userland-proxy>
+      <no-new-privileges>true</no-new-privileges>
+      <icc>false</icc>
+    </security-settings>
+    <logging>
+      <driver>json-file</driver>
+      <max-size>10m</max-size>
+      <max-file>3</max-file>
+    </logging>
+  </docker>
+
+  <directory-structure base="/home/john/vps-setup">
+    <directory path=".env.master" type="file" permissions="600">
+      <description>Shared environment variables for all deployments</description>
+      <contains>
+        <variable name="DOCKER_NETWORK">jhh-net</variable>
+        <variable name="TZ">America/New_York</variable>
+        <variable name="DEFAULT_MEM_LIMIT">512m</variable>
+        <variable name="DEFAULT_MEM_RESERVATION">256m</variable>
+        <variable name="DEFAULT_CPU_LIMIT">1.0</variable>
+        <variable name="ADMIN_EMAIL">jhaugaard@mac.com</variable>
+        <variable name="DISK_ALERT_THRESHOLD">80</variable>
+      </contains>
+    </directory>
+    <directory path="caddy" type="directory">
+      <description>Caddy reverse proxy configuration</description>
+      <files>
+        <file>Caddyfile</file>
+        <file>docker-compose.yml</file>
+      </files>
+    </directory>
+    <directory path="apps" type="directory">
+      <description>Application deployments - create subdirectory per app</description>
+    </directory>
+    <directory path="scripts" type="directory">
+      <description>Utility scripts for monitoring</description>
+      <files>
+        <file>disk-monitor.sh</file>
+        <file>container-health.sh</file>
+      </files>
+    </directory>
+    <directory path="logs/monitoring" type="directory">
+      <description>Monitoring script output logs</description>
+    </directory>
+  </directory-structure>
+
+  <caddy>
+    <container-name>caddy</container-name>
+    <image>caddy:2.7-alpine</image>
+    <ports>
+      <port host="80" container="80"/>
+      <port host="443" container="443"/>
+    </ports>
+    <resource-limits>
+      <memory-limit>512m</memory-limit>
+      <memory-reservation>256m</memory-reservation>
+      <cpu-limit>0.5</cpu-limit>
+    </resource-limits>
+    <healthcheck>
+      <test>caddy version</test>
+      <interval>30s</interval>
+      <timeout>10s</timeout>
+      <retries>3</retries>
+    </healthcheck>
+    <security-features>
+      <admin-api enabled="false"/>
+      <security-headers>
+        <header name="Strict-Transport-Security">max-age=31536000; includeSubDomains; preload</header>
+        <header name="X-Content-Type-Options">nosniff</header>
+        <header name="X-Frame-Options">DENY</header>
+        <header name="Referrer-Policy">strict-origin-when-cross-origin</header>
+        <header name="X-XSS-Protection">1; mode=block</header>
+        <header name="Permissions-Policy">geolocation=(), microphone=(), camera=()</header>
+      </security-headers>
+    </security-features>
+    <caddyfile-location>/home/john/vps-setup/caddy/Caddyfile</caddyfile-location>
+  </caddy>
+
+  <monitoring>
+    <disk-monitor>
+      <script>/home/john/vps-setup/scripts/disk-monitor.sh</script>
+      <log>/home/john/vps-setup/logs/monitoring/disk-alerts.log</log>
+      <threshold-percent>80</threshold-percent>
+      <schedule>daily at 2 AM</schedule>
+      <cron>0 2 * * *</cron>
+    </disk-monitor>
+    <container-health>
+      <script>/home/john/vps-setup/scripts/container-health.sh</script>
+      <log>/home/john/vps-setup/logs/monitoring/container-health.log</log>
+      <schedule>every 6 hours</schedule>
+      <cron>0 */6 * * *</cron>
+    </container-health>
+  </monitoring>
+
+  <deployment-instructions>
+    <step order="1">
+      <action>Create app directory</action>
+      <command>mkdir -p /home/john/vps-setup/apps/APP_NAME</command>
+    </step>
+    <step order="2">
+      <action>Create docker-compose.yml for the application</action>
+      <requirements>
+        <requirement>Bind ports to 127.0.0.1 only (e.g., 127.0.0.1:8080:8080)</requirement>
+        <requirement>Use network jhh-net (external: true)</requirement>
+        <requirement>Include resource limits (mem_limit, mem_reservation, cpus)</requirement>
+        <requirement>Include healthcheck</requirement>
+        <requirement>Set restart: unless-stopped</requirement>
+      </requirements>
+    </step>
+    <step order="3">
+      <action>Create app-specific .env file if needed</action>
+      <note>Can source from ../../.env.master</note>
+    </step>
+    <step order="4">
+      <action>Update Caddyfile with subdomain routing</action>
+      <template><![CDATA[
+subdomain.domain.com {
+    import security
+    reverse_proxy CONTAINER_NAME:PORT
+}
+]]></template>
+      <reload-command>docker exec caddy caddy reload --config /etc/caddy/Caddyfile</reload-command>
+    </step>
+    <step order="5">
+      <action>Configure DNS A record in Cloudflare</action>
+      <note>Use gray cloud (DNS only) for direct VPS access</note>
+    </step>
+    <step order="6">
+      <action>Start the application</action>
+      <command>cd /home/john/vps-setup/apps/APP_NAME && docker compose up -d</command>
+    </step>
+    <step order="7">
+      <action>Verify deployment</action>
+      <commands>
+        <command purpose="check container">docker ps | grep APP_NAME</command>
+        <command purpose="check logs">docker logs APP_NAME</command>
+        <command purpose="check health">docker inspect --format='{{.State.Health.Status}}' APP_NAME</command>
+        <command purpose="test endpoint">curl https://subdomain.domain.com</command>
+      </commands>
+    </step>
+  </deployment-instructions>
+
+  <useful-commands>
+    <command purpose="view running containers">docker ps</command>
+    <command purpose="view docker network">docker network inspect jhh-net</command>
+    <command purpose="caddy logs">docker logs -f caddy</command>
+    <command purpose="restart caddy">cd /home/john/vps-setup/caddy && docker compose restart</command>
+    <command purpose="reload caddyfile">docker exec caddy caddy reload --config /etc/caddy/Caddyfile</command>
+    <command purpose="check disk usage">df -h</command>
+    <command purpose="check docker disk usage">docker system df</command>
+    <command purpose="view monitoring logs">tail -f /home/john/vps-setup/logs/monitoring/container-health.log</command>
+    <command purpose="check swap">free -h</command>
+    <command purpose="firewall status">sudo ufw status verbose</command>
+  </useful-commands>
+</vps-ready-status>

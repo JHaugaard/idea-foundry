@@ -22,9 +22,9 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // LOCALHOST DEV MODE: Set to true for local development without Supabase
-  // Set to false when deploying to Homelab with Supabase auth
-  const BYPASS_AUTH = true;
+  // Auth bypass for local development only
+  // Production uses real Supabase auth on homelab
+  const BYPASS_AUTH = false;
   
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);

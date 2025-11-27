@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const OLLAMA_URL = Deno.env.get("OLLAMA_URL") || "https://ollama.haugaard.dev";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,12 +20,6 @@ serve(async (req) => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       return new Response(
         JSON.stringify({ error: "Supabase URL/Anon key not set" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    if (!OPENAI_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "OPENAI_API_KEY is not set" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -82,33 +76,31 @@ serve(async (req) => {
       });
     }
 
-    // Generate embedding with OpenAI
-    const embedResp = await fetch("https://api.openai.com/v1/embeddings", {
+    // Generate embedding with Ollama (nomic-embed-text produces 768 dimensions)
+    const embedResp = await fetch(`${OLLAMA_URL}/api/embeddings`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: text,
-        dimensions: 384,
+        model: "nomic-embed-text",
+        prompt: text,
       }),
     });
 
     if (!embedResp.ok) {
-      const err = await embedResp.json().catch(() => ({ error: "OpenAI error" }));
-      console.error("note-embed: OpenAI error", err);
-      return new Response(JSON.stringify({ error: err.error || "OpenAI error" }), {
+      const err = await embedResp.text().catch(() => "Ollama error");
+      console.error("note-embed: Ollama error", err);
+      return new Response(JSON.stringify({ error: `Ollama error: ${err}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const embedJson = await embedResp.json();
-    const embedding = embedJson?.data?.[0]?.embedding;
+    const embedding = embedJson?.embedding;
     if (!Array.isArray(embedding)) {
-      return new Response(JSON.stringify({ error: "Invalid embedding response" }), {
+      return new Response(JSON.stringify({ error: "Invalid embedding response from Ollama" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
