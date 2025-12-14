@@ -17,7 +17,11 @@
       "Bash(node:*)",
       "Bash(env)",
       "Bash(launchctl getenv:*)",
-      "Bash(launchctl print-env:*)"
+      "Bash(launchctl print-env:*)",
+      "Bash(ls:*)",
+      "Bash(xargs basename:*)",
+      "Bash(grep:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
