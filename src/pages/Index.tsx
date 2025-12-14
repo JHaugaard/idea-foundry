@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import RecentNotes from '@/components/RecentNotes';
 import QuickCapture from '@/components/QuickCapture';
-import { BasicSearchHome } from '@/components/BasicSearchHome';
+import { EnhancedSearch } from '@/components/EnhancedSearch';
 
 export default function Index() {
   return (
@@ -29,7 +29,7 @@ export default function Index() {
               <CardTitle>Search</CardTitle>
             </CardHeader>
             <CardContent>
-              <BasicSearchHome />
+              <EnhancedSearch compact />
             </CardContent>
           </Card>
         </div>
