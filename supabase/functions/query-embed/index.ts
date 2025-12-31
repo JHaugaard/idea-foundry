@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const OLLAMA_URL = Deno.env.get('OLLAMA_URL') || 'https://ollama.haugaard.dev';
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,31 +21,36 @@ serve(async (req) => {
       throw new Error('Query text is required');
     }
 
-    console.log('Generating embedding for query:', query.substring(0, 100));
+    if (!OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
 
-    // Generate embedding with Ollama (nomic-embed-text produces 768 dimensions)
-    const response = await fetch(`${OLLAMA_URL}/api/embeddings`, {
+    console.log('Generating OpenAI embedding for query:', query.substring(0, 100));
+
+    // Generate embedding with OpenAI (text-embedding-3-small produces 1536 dimensions)
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'nomic-embed-text',
-        prompt: query,
+        model: 'text-embedding-3-small',
+        input: query,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Ollama API error:', response.status, errorData);
-      throw new Error(`Ollama API error: ${response.status}`);
+      console.error('OpenAI API error:', response.status, errorData);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const embedding = data.embedding;
+    const embedding = data?.data?.[0]?.embedding;
 
     if (!Array.isArray(embedding)) {
-      throw new Error('Invalid embedding response from Ollama');
+      throw new Error('Invalid embedding response from OpenAI');
     }
 
     console.log('Generated embedding with dimensions:', embedding.length);

@@ -286,11 +286,9 @@ Track migration impact:
 ## Conclusion
 
 **TL;DR**:
-- ✅ Yes, you're locked into your embedding model choice (vectors are incompatible)
-- ✅ BUT: Re-embedding is cheap/fast for personal-scale corpora (< 50K notes)
-- ✅ Mitigate with model metadata tracking in your schema TODAY
-- ✅ Choose `nomic-embed-text` (local, free, excellent) or `text-embedding-3-small` (cloud, cheap, excellent)
-- ✅ Accept lock-in for now, plan migration procedure for later
-- ✅ Your corpus is likely small enough that switching models later = low cost
+- ✅ **DECISION MADE**: Switched to **OpenAI `text-embedding-3-large`** (3072 dimensions).
+- ✅ **Rationale**: "Frictionless retrieval" and superior semantic separation outweigh the cost ($0.13/1M tokens).
+- ✅ **Action Required**: Run migration to update `note_embeddings` (vector size 768 -> 3072).
+- ✅ **Strategy**: Accepting vendor lock-in for superior performance. Re-embedding <100k notes is trivial.
 
-**Next Step**: Decide on your primary model, then proceed with schema changes and metadata tracking.
+**Next Step**: Execute the `ACTION_PLAN.md` instructions to migrate the database and update edge functions.

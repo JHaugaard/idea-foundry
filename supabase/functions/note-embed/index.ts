@@ -9,7 +9,8 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-const OLLAMA_URL = Deno.env.get("OLLAMA_URL") || "https://ollama.haugaard.dev";
+// Note: We use OPENAI_API_KEY from environment variables
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -17,9 +18,14 @@ serve(async (req) => {
   }
 
   try {
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !OPENAI_API_KEY) {
+      console.error("Missing config:", {
+        url: !!SUPABASE_URL,
+        key: !!SUPABASE_ANON_KEY,
+        openai: !!OPENAI_API_KEY
+      });
       return new Response(
-        JSON.stringify({ error: "Supabase URL/Anon key not set" }),
+        JSON.stringify({ error: "Configuration invalid (Supabase or OpenAI keys missing)" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -29,6 +35,7 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader || "" } },
     });
 
+    // Check user auth
     const { data: authRes } = await userClient.auth.getUser();
     const user = authRes?.user;
     if (!user) {
@@ -46,25 +53,17 @@ serve(async (req) => {
       });
     }
 
-    // Fetch note (RLS-enforced) and verify ownership
+    // Fetch note
     const { data: note, error: noteErr } = await userClient
       .from("notes")
       .select("id, user_id, title, content")
       .eq("id", note_id)
       .maybeSingle();
 
-    if (noteErr) {
-      console.error("note-embed: fetch note error", noteErr);
-      return new Response(JSON.stringify({ error: noteErr.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    if (!note || note.user_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (noteErr || !note || note.user_id !== user.id) {
+      console.error("fetch note error", noteErr);
+      return new Response(JSON.stringify({ error: "Note not found or access denied" }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
@@ -76,68 +75,63 @@ serve(async (req) => {
       });
     }
 
-    // Generate embedding with Ollama (nomic-embed-text produces 768 dimensions)
-    const embedResp = await fetch(`${OLLAMA_URL}/api/embeddings`, {
+    // Call OpenAI for Embedding
+    const openAiResp = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: "nomic-embed-text",
-        prompt: text,
+        model: "text-embedding-3-small", // Switched to small (1536 dims) for DB index compatibility
+        input: text,
       }),
+      // Removed 'dimensions' parameter as it is optional and defaults to 1536 for small
     });
 
-    if (!embedResp.ok) {
-      const err = await embedResp.text().catch(() => "Ollama error");
-      console.error("note-embed: Ollama error", err);
-      return new Response(JSON.stringify({ error: `Ollama error: ${err}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!openAiResp.ok) {
+      const errText = await openAiResp.text();
+      console.error("OpenAI Error:", errText);
+      return new Response(JSON.stringify({ error: `OpenAI embedding failed: ${errText}` }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    const embedJson = await embedResp.json();
-    const embedding = embedJson?.embedding;
+    const openAiData = await openAiResp.json();
+    const embedding = openAiData?.data?.[0]?.embedding;
+
     if (!Array.isArray(embedding)) {
-      return new Response(JSON.stringify({ error: "Invalid embedding response from Ollama" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      return new Response(JSON.stringify({ error: "Invalid response format from OpenAI" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    // Upsert embedding and enable semantic flag (RLS-enforced via user client)
+    // Upsert to DB
     const upsertRes = await userClient
       .from("note_embeddings")
-      .upsert({ note_id: note.id, user_id: user.id, embedding }, { onConflict: "note_id" })
-      .select("id")
-      .maybeSingle();
+      .upsert({
+        note_id: note.id,
+        user_id: user.id,
+        embedding
+      }, { onConflict: "note_id" });
 
     if (upsertRes.error) {
-      console.error("note-embed: upsert error", upsertRes.error);
+      console.error("upsert error", upsertRes.error);
       return new Response(JSON.stringify({ error: upsertRes.error.message }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const updateRes = await userClient
-      .from("notes")
+    // Update flag
+    await userClient.from("notes")
       .update({ semantic_enabled: true })
-      .eq("id", note.id)
-      .eq("user_id", user.id);
-
-    if (updateRes.error) {
-      console.error("note-embed: update note flag error", updateRes.error);
-      return new Response(JSON.stringify({ error: updateRes.error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      .eq("id", note.id);
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (error) {
     console.error("note-embed: unexpected error", error);
     return new Response(JSON.stringify({ error: (error as Error).message || "Unknown error" }), {

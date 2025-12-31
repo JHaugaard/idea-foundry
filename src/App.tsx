@@ -9,6 +9,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import Auth from '@/pages/Auth'
 import Signup from '@/pages/Signup'
 import Index from '@/pages/Index'
+import Inbox from '@/pages/Inbox'
 import NoteView from '@/pages/NoteView'
 import Analytics from '@/pages/Analytics'
 import TagLibrary from '@/pages/TagLibrary'
@@ -51,6 +52,16 @@ function App() {
                   <AppSidebar />
                   <SidebarInset>
                     <Index />
+                  </SidebarInset>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+            <Route path="/inbox" element={
+              <ProtectedRoute>
+                <SidebarProvider defaultOpen={false}>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <Inbox />
                   </SidebarInset>
                 </SidebarProvider>
               </ProtectedRoute>

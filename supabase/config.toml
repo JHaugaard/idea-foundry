@@ -51,3 +51,6 @@ verify_jwt = true
 
 [functions.tag-operations]
 verify_jwt = true
+
+[functions.process-queue]
+verify_jwt = false

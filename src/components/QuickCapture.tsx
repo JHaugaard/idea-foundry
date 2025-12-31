@@ -26,7 +26,7 @@ type FormData = z.infer<typeof formSchema>;
 
 const QuickCapture = () => {
   const [isDragOver, setIsDragOver] = useState(false);
-  
+
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadFile, isUploading } = useSupabaseStorage();
@@ -96,7 +96,7 @@ const QuickCapture = () => {
         // Create note with file attachment
         const fileTitle = file.name;
         const fileSlug = slugify(`${file.name}-${Date.now()}`);
-        
+
         await supabase
           .from('notes')
           .insert({
@@ -161,35 +161,35 @@ const QuickCapture = () => {
 
       if (insertError) throw insertError;
 
-  // Backlink processing is paused — auto-linking disabled for now.
+      // Backlink processing is paused — auto-linking disabled for now.
 
-  // Feature flag: temporarily disable AI summarization and tag generation
-  const AI_SUMMARIZATION_ENABLED = false;
+      // Feature flag: temporarily disable AI summarization and tag generation
+      const AI_SUMMARIZATION_ENABLED = true;
 
-  // AI summarization & tags (non-blocking)
-  if (AI_SUMMARIZATION_ENABLED) {
-    try {
-      const { data: aiData, error: aiError } = await supabase.functions.invoke('note-summarize', {
-        body: {
-          note_title: tempTitle,
-          note_text: values.content.trim()
-        }
-      });
-      if (!aiError && aiData) {
-        const parsed = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
-        const tags = Array.isArray(parsed?.tags) ? parsed.tags.slice(0, 6) : null;
-        if (tags && tags.length > 0 && inserted) {
-          await supabase
-            .from('notes')
-            .update({ tags })
-            .eq('id', inserted.id)
-            .eq('user_id', user.id);
+      // AI summarization & tags (non-blocking)
+      if (AI_SUMMARIZATION_ENABLED) {
+        try {
+          const { data: aiData, error: aiError } = await supabase.functions.invoke('note-summarize', {
+            body: {
+              note_title: tempTitle,
+              note_text: values.content.trim()
+            }
+          });
+          if (!aiError && aiData) {
+            const parsed = typeof aiData === 'string' ? JSON.parse(aiData) : aiData;
+            const tags = Array.isArray(parsed?.tags) ? parsed.tags.slice(0, 6) : null;
+            if (tags && tags.length > 0 && inserted) {
+              await supabase
+                .from('notes')
+                .update({ tags })
+                .eq('id', inserted.id)
+                .eq('user_id', user.id);
+            }
+          }
+        } catch (e) {
+          console.warn('Summarize/tags failed (continuing):', e);
         }
       }
-    } catch (e) {
-      console.warn('Summarize/tags failed (continuing):', e);
-    }
-  }
 
       // Clear form 
       reset();
@@ -217,7 +217,7 @@ const QuickCapture = () => {
           <Lightbulb className="h-5 w-5" />
           Capture
         </CardTitle>
-    </CardHeader>
+      </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
@@ -273,8 +273,8 @@ const QuickCapture = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col justify-center items-center gap-3">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   size="lg"
                   disabled={form.formState.isSubmitting}
                   className="w-full max-w-xs"

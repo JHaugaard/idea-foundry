@@ -1,10 +1,11 @@
 import React from 'react';
 import { NavLink, useLocation } from "react-router-dom";
-import { 
-  Tag, 
-  Network, 
+import {
+  Tag,
+  Network,
   BarChart3,
-  Lightbulb
+  Lightbulb,
+  FileText
 } from 'lucide-react';
 
 import {
@@ -25,9 +26,10 @@ import UserMenu from '@/components/UserMenu';
 
 const navigationItems = [
   { title: "Capture", url: "/", icon: Lightbulb },
-  { title: "Link Explorer", url: "/links", icon: Network },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Tag Manager", url: "/tags", icon: Tag },
+  { title: "Inbox", url: "/inbox", icon: FileText },
+  // { title: "Link Explorer", url: "/links", icon: Network },
+  // { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  // { title: "Tag Manager", url: "/tags", icon: Tag },
 ];
 
 interface AppSidebarProps {
