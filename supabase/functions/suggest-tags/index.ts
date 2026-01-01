@@ -7,14 +7,27 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const OLLAMA_URL = Deno.env.get('OLLAMA_URL') || 'https://ollama.haugaard.dev';
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // --- OLLAMA_URL validation (graceful fail) ---
+    const OLLAMA_URL = Deno.env.get('OLLAMA_URL');
+    if (!OLLAMA_URL) {
+      console.error('OLLAMA_URL environment variable is not configured');
+      return new Response(JSON.stringify({
+        error: 'AI service not configured. Please set OLLAMA_URL environment variable.',
+        suggestions: [],
+        mode: 'error'
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // --- End OLLAMA_URL validation ---
+
     const {
       content,
       title,

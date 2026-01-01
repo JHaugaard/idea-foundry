@@ -1,12 +1,14 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const OLLAMA_URL = Deno.env.get('OLLAMA_URL') || 'https://ollama.haugaard.dev';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -14,6 +16,41 @@ serve(async (req) => {
   }
 
   try {
+    // --- Authentication check ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // --- End authentication check ---
+
+    // --- OLLAMA_URL validation (graceful fail) ---
+    const OLLAMA_URL = Deno.env.get('OLLAMA_URL');
+    if (!OLLAMA_URL) {
+      console.error('OLLAMA_URL environment variable is not configured');
+      return new Response(JSON.stringify({
+        error: 'AI service not configured. Please set OLLAMA_URL environment variable.'
+      }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // --- End OLLAMA_URL validation ---
+
     const { note_title, note_text } = await req.json();
     if (typeof note_title !== 'string' || typeof note_text !== 'string') {
       return new Response(JSON.stringify({ error: 'Invalid payload: note_title and note_text are required strings.' }), {

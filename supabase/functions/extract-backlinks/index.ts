@@ -1,10 +1,54 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+// Input limits for cost protection
+const MAX_RECOMMENDED_CHARS = 100000; // ~25K tokens, ~50 pages - warn but allow
+const ABSOLUTE_MAX_CHARS = 500000;    // ~125K tokens - reject
+
+// Retry helper for OpenAI calls
+async function callOpenAIWithRetry(
+  payload: Record<string, unknown>,
+  apiKey: string,
+  maxRetries = 3
+): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) return response;
+
+      // Retry on server errors (5xx)
+      if (response.status >= 500 && attempt < maxRetries) {
+        console.warn(`OpenAI server error (attempt ${attempt}/${maxRetries}), retrying...`);
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+        continue;
+      }
+
+      return response;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.warn(`OpenAI request failed (attempt ${attempt}/${maxRetries}), retrying...`);
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+    }
+  }
+  throw new Error('OpenAI request failed after all retries');
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -12,6 +56,28 @@ serve(async (req) => {
   }
 
   try {
+    // --- Authentication check ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // --- End authentication check ---
+
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
       return new Response(JSON.stringify({ error: 'OPENAI_API_KEY is not set' }), {
@@ -26,6 +92,21 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Input length validation
+    const totalLength = note_title.length + note_text.length;
+    if (totalLength > ABSOLUTE_MAX_CHARS) {
+      return new Response(JSON.stringify({
+        error: 'Document too large for backlink extraction. Please split into sections (max 500K characters).'
+      }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (totalLength > MAX_RECOMMENDED_CHARS) {
+      console.warn(`Large backlink input: ${totalLength} chars from user ${user.id}`);
     }
 
     const systemMessage =
@@ -51,23 +132,16 @@ Output strictly valid JSON.`;
 
     const userMessage = `User: Title: ${note_title} Text: ${note_text}`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0.1,
-        messages: [
-          { role: 'system', content: systemMessage },
-          { role: 'developer', content: developerMessage },
-          { role: 'user', content: userMessage },
-        ],
-        response_format: { type: 'json_object' },
-      }),
-    });
+    const response = await callOpenAIWithRetry({
+      model: 'gpt-4o-mini',
+      temperature: 0.1,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'developer', content: developerMessage },
+        { role: 'user', content: userMessage },
+      ],
+      response_format: { type: 'json_object' },
+    }, OPENAI_API_KEY);
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({ error: 'OpenAI error' }));

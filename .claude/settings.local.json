@@ -21,7 +21,12 @@
       "Bash(ls:*)",
       "Bash(xargs basename:*)",
       "Bash(grep:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git remote add:*)",
+      "Bash(openssl rand:*)",
+      "Bash(git branch:*)",
+      "Bash(git worktree:*)",
+      "Bash(git -C /Volumes/dev/develop/idea-foundry log --oneline -20)"
     ],
     "deny": [],
     "ask": []

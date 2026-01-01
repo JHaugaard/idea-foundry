@@ -7,10 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// Service role client for operations that need to bypass RLS
+const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 interface BulkTagOperation {
   operation: 'add' | 'remove' | 'replace';
@@ -21,7 +23,6 @@ interface BulkTagOperation {
 
 interface TagValidationRequest {
   tags: string[];
-  userId: string;
 }
 
 interface TagNormalizationRequest {
@@ -34,31 +35,56 @@ serve(async (req) => {
   }
 
   try {
+    // --- Authentication check ---
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // --- End authentication check ---
+
+    // Now user.id is the authenticated user - enforce this on all operations
+    const userId = user.id;
+
     const { action, ...payload } = await req.json();
 
     switch (action) {
       case 'bulk_operations':
-        return await handleBulkOperations(payload as BulkTagOperation);
-      
+        return await handleBulkOperations(payload as BulkTagOperation, userId);
+
       case 'validate_tags':
-        return await handleTagValidation(payload as TagValidationRequest);
-      
+        return await handleTagValidation(payload as TagValidationRequest, userId);
+
       case 'normalize_tags':
         return await handleTagNormalization(payload as TagNormalizationRequest);
-      
+
       case 'backup_tags':
-        return await handleTagBackup(payload.userId);
-      
+        return await handleTagBackup(userId);
+
       case 'restore_tags':
-        return await handleTagRestore(payload.userId, payload.backupId);
-      
+        return await handleTagRestore(userId, payload.backupId);
+
       default:
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in tag-operations function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
@@ -67,45 +93,57 @@ serve(async (req) => {
   }
 });
 
-async function handleBulkOperations(operation: BulkTagOperation) {
+async function handleBulkOperations(operation: BulkTagOperation, userId: string) {
   const { operation: op, noteIds, tags, replaceTags } = operation;
-  
-  // Start transaction
-  const { data: notes, error: fetchError } = await supabase
+
+  // SECURITY: Only fetch notes belonging to the authenticated user
+  const { data: notes, error: fetchError } = await adminClient
     .from('notes')
     .select('id, tags')
-    .in('id', noteIds);
+    .in('id', noteIds)
+    .eq('user_id', userId);  // Enforce user ownership
 
   if (fetchError) throw fetchError;
 
+  if (!notes || notes.length === 0) {
+    return new Response(
+      JSON.stringify({ success: true, updatedCount: 0, message: 'No matching notes found' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
   const updates = notes.map(note => {
     let newTags = note.tags || [];
-    
+
     switch (op) {
       case 'add':
         newTags = [...new Set([...newTags, ...tags])];
         break;
       case 'remove':
-        newTags = newTags.filter(tag => !tags.includes(tag));
+        newTags = newTags.filter((tag: string) => !tags.includes(tag));
         break;
       case 'replace':
         if (replaceTags) {
-          newTags = newTags.map(tag => 
+          newTags = newTags.map((tag: string) =>
             tags.includes(tag) ? replaceTags[tags.indexOf(tag)] : tag
           );
         }
         break;
     }
-    
+
     return { id: note.id, tags: newTags };
   });
 
-  // Execute bulk update
-  const { error: updateError } = await supabase
-    .from('notes')
-    .upsert(updates);
+  // Execute bulk update - still enforce user_id
+  for (const update of updates) {
+    const { error: updateError } = await adminClient
+      .from('notes')
+      .update({ tags: update.tags })
+      .eq('id', update.id)
+      .eq('user_id', userId);  // Double-check ownership on update
 
-  if (updateError) throw updateError;
+    if (updateError) throw updateError;
+  }
 
   return new Response(
     JSON.stringify({ success: true, updatedCount: updates.length }),
@@ -113,11 +151,11 @@ async function handleBulkOperations(operation: BulkTagOperation) {
   );
 }
 
-async function handleTagValidation(request: TagValidationRequest) {
-  const { tags, userId } = request;
-  
-  // Get user preferences
-  const { data: preferences } = await supabase
+async function handleTagValidation(request: TagValidationRequest, userId: string) {
+  const { tags } = request;
+
+  // Get user preferences using authenticated userId (not from request)
+  const { data: preferences } = await adminClient
     .from('user_tag_preferences')
     .select('*')
     .eq('user_id', userId)
@@ -173,12 +211,12 @@ async function handleTagNormalization(request: TagNormalizationRequest) {
 }
 
 async function handleTagBackup(userId: string) {
-  // Get all user's tag data
+  // Get all user's tag data - using adminClient with explicit user_id filter
   const [notesResult, analyticsResult, relationshipsResult, preferencesResult] = await Promise.all([
-    supabase.from('notes').select('id, title, tags').eq('user_id', userId),
-    supabase.from('tag_analytics').select('*').eq('user_id', userId),
-    supabase.from('tag_relationships').select('*').eq('user_id', userId),
-    supabase.from('user_tag_preferences').select('*').eq('user_id', userId)
+    adminClient.from('notes').select('id, title, tags').eq('user_id', userId),
+    adminClient.from('tag_analytics').select('*').eq('user_id', userId),
+    adminClient.from('tag_relationships').select('*').eq('user_id', userId),
+    adminClient.from('user_tag_preferences').select('*').eq('user_id', userId)
   ]);
 
   const backupData = {
@@ -189,8 +227,8 @@ async function handleTagBackup(userId: string) {
     timestamp: new Date().toISOString()
   };
 
-  // Store backup
-  const { data: backup, error } = await supabase
+  // Store backup - enforce user_id from authenticated session
+  const { data: backup, error } = await adminClient
     .from('tag_backups')
     .insert({
       user_id: userId,
@@ -210,42 +248,42 @@ async function handleTagBackup(userId: string) {
 }
 
 async function handleTagRestore(userId: string, backupId: string) {
-  // Get backup data
-  const { data: backup, error: backupError } = await supabase
+  // Get backup data - enforce user_id ownership check
+  const { data: backup, error: backupError } = await adminClient
     .from('tag_backups')
     .select('backup_data')
     .eq('id', backupId)
-    .eq('user_id', userId)
+    .eq('user_id', userId)  // Only allow restoring own backups
     .single();
 
   if (backupError) throw backupError;
 
-  const { notes, analytics, relationships, preferences } = backup.backup_data;
+  const { notes, analytics, relationships } = backup.backup_data;
 
   // Restore data (simplified - in practice you'd want more sophisticated merging)
   await Promise.all([
-    // Update notes tags
-    ...notes.map(note => 
-      supabase.from('notes')
+    // Update notes tags - enforce user_id on each update
+    ...notes.map((note: { id: string; tags: string[] }) =>
+      adminClient.from('notes')
         .update({ tags: note.tags })
         .eq('id', note.id)
         .eq('user_id', userId)
     ),
-    
-    // Restore analytics
-    supabase.from('tag_analytics').delete().eq('user_id', userId),
-    
-    // Restore relationships
-    supabase.from('tag_relationships').delete().eq('user_id', userId)
+
+    // Restore analytics - only delete user's own data
+    adminClient.from('tag_analytics').delete().eq('user_id', userId),
+
+    // Restore relationships - only delete user's own data
+    adminClient.from('tag_relationships').delete().eq('user_id', userId)
   ]);
 
   // Re-insert analytics and relationships
   if (analytics?.length > 0) {
-    await supabase.from('tag_analytics').insert(analytics);
+    await adminClient.from('tag_analytics').insert(analytics);
   }
-  
+
   if (relationships?.length > 0) {
-    await supabase.from('tag_relationships').insert(relationships);
+    await adminClient.from('tag_relationships').insert(relationships);
   }
 
   return new Response(
